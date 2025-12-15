@@ -3,7 +3,7 @@ import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Skull, Trophy, Sword, 
 import io from 'socket.io-client';
 
 const BACKEND_URL = import.meta.env.PROD
-    ? "https://wiz-battles-server.onrender.com"
+    ? "https://wizbattle.onrender.com"
     : "http://localhost:3001";
 
 const socket = io.connect(BACKEND_URL);

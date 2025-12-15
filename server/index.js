@@ -1,9 +1,8 @@
-import express from 'express';
-import http from 'http';
-import { Server } from 'socket.io';
-import cors from 'cors';
-
+const express = require('express');
 const app = express();
+const http = require('http');
+const { Server } = require("socket.io");
+const cors = require("cors");
 
 app.use(cors());
 
@@ -11,7 +10,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "*", 
     methods: ["GET", "POST"],
   },
 });
@@ -19,12 +18,12 @@ const io = new Server(server, {
 let rooms = {};
 
 function findRoomBySocketId(id) {
-  for (let room in rooms) {
-    if (rooms[room].p1 === id || rooms[room].p2 === id) {
-      return room;
+    for (let room in rooms) {
+      if (rooms[room].p1 === id || rooms[room].p2 === id) {
+        return room;
+      }
     }
-  }
-  return null;
+    return null;
 }
 
 io.on("connection", (socket) => {
@@ -36,15 +35,13 @@ io.on("connection", (socket) => {
       socket.join(room);
       socket.emit("player_assignment", "p1");
       console.log(`Room ${room} created by ${socket.id} (P1)`);
-    }
-    else if (!rooms[room].p2) {
+    } else if (!rooms[room].p2) {
       rooms[room].p2 = socket.id;
       socket.join(room);
       socket.emit("player_assignment", "p2");
       io.to(room).emit("game_start", true);
       console.log(`User ${socket.id} joined room ${room} (P2)`);
-    }
-    else {
+    } else {
       socket.emit("room_full");
     }
   });
@@ -54,26 +51,27 @@ io.on("connection", (socket) => {
 
     rooms[room].moves[player] = move;
 
+    // Check if both have moved
     if (rooms[room].moves.p1 && rooms[room].moves.p2) {
+      // Both moved: Send results to EVERYONE
       io.to(room).emit("round_complete", {
         p1Move: rooms[room].moves.p1,
         p2Move: rooms[room].moves.p2
       });
-
       rooms[room].moves = {};
     } else {
-      io.to(room).emit("waiting_for_opponent");
+        // Only one moved: Tell ONLY that person to wait (Fixes the bug!)
+        socket.emit("waiting_for_opponent");
     }
   });
 
   socket.on("disconnect", () => {
     const room = findRoomBySocketId(socket.id);
     if (room) {
-      delete rooms[room];
-      io.to(room).emit("player_disconnected");
-      console.log(`Room ${room} closed because player left.`);
+        delete rooms[room];
+        io.to(room).emit("player_disconnected");
+        console.log(`Room ${room} closed.`);
     }
-    console.log("User Disconnected", socket.id);
   });
 });
 

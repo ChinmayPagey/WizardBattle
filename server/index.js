@@ -46,22 +46,42 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("send_move", ({ room, move, player }) => {
-    if (!rooms[room]) return;
+  socket.on("send_move", ({ room, move }) => { // Note: We don't need 'player' from client anymore
+    console.log(`Move received for Room: ${room} from Socket: ${socket.id}`);
 
-    rooms[room].moves[player] = move;
+    // 1. Safety Check: Does the room exist?
+    if (!rooms[room]) {
+        console.log(`ERROR: Room ${room} does not exist! (It might have been deleted)`);
+        socket.emit("error_message", "Game session expired. Please refresh.");
+        return;
+    }
 
-    // Check if both have moved
+    // 2. Determine who the player is based on Server ID (Secure)
+    let playerKey = null;
+    if (rooms[room].p1 === socket.id) playerKey = "p1";
+    else if (rooms[room].p2 === socket.id) playerKey = "p2";
+
+    if (!playerKey) {
+        console.log(`ERROR: Socket ${socket.id} is not a player in room ${room}`);
+        return;
+    }
+
+    // 3. Register the move
+    rooms[room].moves[playerKey] = move;
+    console.log(`Move registered for ${playerKey}. Current moves:`, Object.keys(rooms[room].moves));
+
+    // 4. Check for Round Complete
     if (rooms[room].moves.p1 && rooms[room].moves.p2) {
-      // Both moved: Send results to EVERYONE
+      console.log("Both players moved! Sending results...");
       io.to(room).emit("round_complete", {
         p1Move: rooms[room].moves.p1,
         p2Move: rooms[room].moves.p2
       });
+      // Clear moves for the next round
       rooms[room].moves = {};
     } else {
-        // Only one moved: Tell ONLY that person to wait (Fixes the bug!)
-        socket.emit("waiting_for_opponent");
+      console.log(`Waiting for other player...`);
+      socket.emit("waiting_for_opponent");
     }
   });
 

@@ -33,7 +33,7 @@ const EMOJIS = [
     { id: 'sparkle', icon: Sparkles, label: 'Wow!', color: 'text-purple-400', bg: 'from-purple-500/80 to-fuchsia-700/60' }
 ];
 
-// --- UPDATED ANIMATION STYLES ---
+// --- UPDATED ANIMATION STYLES (Floating Emojis) ---
 const styles = `
   @keyframes float-up {
     0% { transform: translateY(0px) scale(0.5); opacity: 0; }
@@ -211,14 +211,12 @@ function WizBattles() {
         }
     }, [isBotMode, joined]);
 
-    // --- BOT LOGIC (Shortened for brevity, use your existing robust logic) ---
+    // --- BOT LOGIC ---
     const botMemory = useRef({ playerMoves: [], consecutiveLoads: 0, aggressiveness: 0.5 });
-    
-    // ... [Insert your getSmartBotMove function here] ...
-    // For the sake of the snippet, I'll use a simplified version, but you should keep your robust one.
     const getSmartBotMove = (botEnergy, playerEnergy) => {
          const moves = Object.values(MOVES);
          const affordable = moves.filter(m => (m.req ? botEnergy >= m.req : botEnergy >= m.cost));
+         // Simplified strategy for brevity
          if (botEnergy >= 8) return MOVES.DRAGON;
          if (botEnergy === 0) return Math.random() > 0.3 ? MOVES.LOAD : MOVES.SHIELD;
          return affordable[Math.floor(Math.random() * affordable.length)] || MOVES.LOAD;
@@ -234,6 +232,7 @@ function WizBattles() {
             if (myRole === 'p1') setP1Name(playerName);
             else if (myRole === 'p2') setP2Name(playerName);
 
+            // RESET CHAT ON JOIN
             setChatMessages([]);
             setActiveEmojis([]);
             setShowChat(false);
@@ -254,6 +253,7 @@ function WizBattles() {
             setGameState('playing');
             setMessage("BATTLE START! Select a move.");
 
+            // RESET CHAT
             setChatMessages([]);
             setActiveEmojis([]);
             setShowChat(false);
@@ -277,6 +277,7 @@ function WizBattles() {
         setMessage("Waiting for opponents...");
         setWinner(null);
 
+        // RESET CHAT
         setChatMessages([]);
         setActiveEmojis([]);
         setShowChat(false);
@@ -312,7 +313,6 @@ function WizBattles() {
 
         if (isBotMode) {
             setChatMessages(prev => [...prev, { message: chatInput, playerName: playerName, timestamp: Date.now(), id: Math.random(), isSelf: true }]);
-            // Bot Logic for chat...
              if (Math.random() > 0.7) {
                 setTimeout(() => {
                     setChatMessages(prev => [...prev, { message: "Nice move!", playerName: "Bot Alpha", timestamp: Date.now(), id: Math.random(), isSelf: false }]);
@@ -332,7 +332,6 @@ function WizBattles() {
                 setActiveEmojis(prev => [...prev, { ...emojiData, playerRole: myRole, id, timestamp: Date.now(), isSelf: true }]);
                 setTimeout(() => { setActiveEmojis(prev => prev.filter(e => e.id !== id)); }, 2000);
             }
-            // Bot reaction...
              if (Math.random() > 0.6) {
                 setTimeout(() => {
                     const randomEmoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
@@ -374,26 +373,61 @@ function WizBattles() {
         }, 1500);
     };
 
+    // Flavor text logic
+    const getBattleFlavorText = (m1, m2, n1, n2, winner) => {
+        if (m1.type === 'attack' && m2.type === 'attack') {
+            if (m1.power === m2.power) return `CLASH! ${m1.name} meets ${m2.name}!`;
+            return winner === 'p1' ? `${n1}'s ${m1.name} overpowers!` : `${n2}'s ${m2.name} overpowers!`;
+        }
+        if (m1.type === 'attack') {
+            if (m2.id === 'shield') return m1.power > 2 ? `${m1.name} SHATTERED Shield!` : `Blocked by Shield.`;
+            if (m2.id === 'rebound') return m1.power > 5 ? `Attack CRUSHED Rebound!` : `Attack reflected!`;
+            if (m2.id === 'kayoken') return `Missed! ${n2} dodged!`;
+            return `${n1} hits with ${m1.name}!`;
+        }
+        if (m2.type === 'attack') {
+            if (m1.id === 'shield') return m2.power > 2 ? `${m2.name} SHATTERED Shield!` : `Blocked by Shield.`;
+            if (m1.id === 'rebound') return m2.power > 5 ? `Attack CRUSHED Rebound!` : `Attack reflected!`;
+            if (m1.id === 'kayoken') return `Missed! ${n1} dodged!`;
+            return `${n2} hits with ${m2.name}!`;
+        }
+        return "Tactical maneuvering...";
+    };
+
     const resolveTurn = (move1, move2, name1, name2) => {
         let p1Death = false;
         let p2Death = false;
         let p1Net = 0;
         let p2Net = 0;
-        
-        // ... (Keep your combat logic here) ...
-        // Simplified for brevity in this response block, assuming standard logic
-        if (move1.id === 'load') p1Net += 1; else if (move1.id !== 'kayoken') p1Net -= move1.cost;
-        if (move2.id === 'load') p2Net += 1; else if (move2.id !== 'kayoken') p2Net -= move2.cost;
-        
-        // Logic check...
+        let roundWinner = null;
+
+        if (move1.id === 'load') p1Net += 1; else if (move1.id === 'kayoken') p1Net += 3; else p1Net -= move1.cost;
+        if (move2.id === 'load') p2Net += 1; else if (move2.id === 'kayoken') p2Net += 3; else p2Net -= move2.cost;
+
         const p1Atk = move1.type === 'attack';
         const p2Atk = move2.type === 'attack';
-        let winnerName = null;
-        
-        if (p1Atk && !p2Atk && move2.id !== 'shield' && move2.id !== 'rebound' && move2.id !== 'kayoken') p2Death = true;
-        if (p2Atk && !p1Atk && move1.id !== 'shield' && move1.id !== 'rebound' && move1.id !== 'kayoken') p1Death = true;
-        // (Full logic assumed present)
 
+        if (p1Atk && p2Atk) {
+            if (move1.power === move2.power) { roundWinner = 'clash'; }
+            else if (move1.power > move2.power) { p2Death = true; roundWinner = 'p1'; }
+            else { p1Death = true; roundWinner = 'p2'; }
+        } else if (p1Atk) {
+            if (move2.id === 'kayoken') {} 
+            else if (move2.id === 'rebound') {
+                if (move1.id === 'dragon') { p2Death = true; roundWinner = 'p1'; } else { p1Death = true; roundWinner = 'p2'; }
+            } else if (move2.id === 'shield') {
+                if (move1.power > 2) { p2Death = true; roundWinner = 'p1'; }
+            } else { p2Death = true; roundWinner = 'p1'; }
+        } else if (p2Atk) {
+            if (move1.id === 'kayoken') {} 
+            else if (move1.id === 'rebound') {
+                if (move2.id === 'dragon') { p1Death = true; roundWinner = 'p2'; } else { p2Death = true; roundWinner = 'p1'; }
+            } else if (move1.id === 'shield') {
+                if (move2.power > 2) { p1Death = true; roundWinner = 'p2'; }
+            } else { p1Death = true; roundWinner = 'p2'; }
+        }
+
+        const msg = getBattleFlavorText(move1, move2, name1, name2, roundWinner);
         setP1Energy(prev => Math.max(0, prev + p1Net));
         setP2Energy(prev => Math.max(0, prev + p2Net));
 
@@ -409,7 +443,7 @@ function WizBattles() {
             }
             setTimeout(() => { setGameState('gameover'); }, 2500);
         } else {
-            setMessage("Next Round!");
+            setMessage(msg);
             setTimeout(() => {
                 setGameState('playing');
                 setP1Move(null);
@@ -688,3 +722,209 @@ function WizBattles() {
         </div>
     );
 }
+
+// --- NEW COMPONENT: RULEBOOK ---
+const RuleBookModal = ({ show, onClose }) => {
+    if (!show) return null;
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[boom-flash_0.2s_ease-out]">
+            <div className="bg-[#0f172a] w-full max-w-4xl max-h-[85vh] rounded-3xl border-2 border-yellow-500/50 shadow-[0_0_50px_rgba(234,179,8,0.2)] flex flex-col relative overflow-hidden">
+                
+                {/* Header */}
+                <div className="p-4 md:p-6 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-slate-900 to-slate-800">
+                    <div className="flex items-center gap-3">
+                        <Book className="text-yellow-400" size={28} />
+                        <h2 className="text-xl md:text-3xl font-black italic text-white tracking-wide">WIZARD'S GUIDE</h2>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <X size={24} className="text-slate-400 hover:text-white" />
+                    </button>
+                </div>
+
+                {/* Content - Scrollable */}
+                <div className="overflow-y-auto p-4 md:p-6 space-y-8 custom-scrollbar">
+                    
+                    {/* Section 1: The Basics */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Info className="text-blue-400" size={20} />
+                            <h3 className="text-lg md:text-xl font-bold text-blue-300 uppercase tracking-wider">How To Play</h3>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                                <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
+                                    <strong className="text-white">Simultaneous Turns:</strong> Both players choose a move at the same time. You cannot see what your opponent picks until the turn resolves.
+                                </p>
+                            </div>
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                                <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
+                                    <strong className="text-white">Energy Management:</strong> Moves cost energy (loads). You must Charge to gain energy. Plan your attack strategy based on the charges you have!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section 2: Move List (Grid) */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <Zap className="text-yellow-400" size={20} />
+                            <h3 className="text-lg md:text-xl font-bold text-yellow-300 uppercase tracking-wider">The Spellbook</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            {Object.values(MOVES).map((move) => (
+                                <div key={move.id} className="flex items-center gap-3 bg-slate-900/80 p-3 rounded-lg border border-white/5 relative overflow-hidden group hover:border-white/20 transition-all">
+                                    <div className={`p-2 rounded-full bg-black/40 ${move.color} border border-white/10 shrink-0`}>
+                                        <move.icon size={18} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-0.5">
+                                            <span className={`font-bold text-sm uppercase ${move.color}`}>{move.name}</span>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${move.cost === 0 && !move.req ? 'bg-slate-700 text-slate-300' : 'bg-blue-900 text-blue-200'}`}>
+                                                {move.req ? `REQ: ${move.req}` : `COST: ${move.cost}`}
+                                            </span>
+                                        </div>
+                                        <p className="text-[10px] md:text-[11px] text-slate-400 leading-tight">{move.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Section 3: Interactions (Logic) */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <AlertTriangle className="text-red-400" size={20} />
+                            <h3 className="text-lg md:text-xl font-bold text-red-300 uppercase tracking-wider">Battle Logic</h3>
+                        </div>
+                        
+                        <div className="grid gap-3 text-xs md:text-sm">
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-orange-500">
+                                <div className="font-bold text-white w-full md:w-1/3">ATTACK vs ATTACK</div>
+                                <div className="text-slate-300 flex-1">
+                                    Higher power wins. If equal, they <span className="text-orange-400 font-bold">CLASH</span> and cancel out.
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-blue-500">
+                                <div className="font-bold text-white w-full md:w-1/3">SHIELDING</div>
+                                <div className="text-slate-300 flex-1">
+                                    Blocks any attack with Power 2 or less (Fireball, Beam). <br/>
+                                    <span className="text-pink-400 font-bold">DESTRUCTO DISC</span>  (Power 3) or higher breaks shields!
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-purple-500">
+                                <div className="font-bold text-white w-full md:w-1/3">REBOUND</div>
+                                <div className="text-slate-300 flex-1">
+                                    Reflects any attack with Power 5 or less back at the user.<br/>
+                                    <span className="text-amber-400 font-bold">DRAGON FIST</span> (Power 8) crushes Rebound.
+                                </div>
+                            </div>
+
+                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-red-500">
+                                <div className="font-bold text-white w-full md:w-1/3">KAYOKEN</div>
+                                <div className="text-slate-300 flex-1">
+                                    The ultimate dodge. Avoids <span className="text-white font-bold underline">ANY</span> incoming attack and instantly charges +3 Energy.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 border-t border-white/10 bg-slate-900 flex justify-center shrink-0">
+                    <button onClick={onClose} className="px-8 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-widest rounded-lg transition-colors">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- SUB-COMPONENTS ---
+
+const BattleAnimations = ({ gameState, p1Move, p2Move, myRole }) => {
+    if (gameState !== 'resolution' && gameState !== 'gameover' && gameState !== 'playing') return null;
+    if (!p1Move || !p2Move) return null;
+    if (gameState === 'playing') return null;
+
+    const selfMove = myRole === 'p1' ? p1Move : p2Move;
+    const enemyMove = myRole === 'p1' ? p2Move : p1Move;
+
+    return (
+        <div className="absolute inset-0 z-0 pointer-events-none flex flex-col justify-center items-center overflow-hidden">
+            {selfMove?.type === 'attack' && (
+                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center justify-center animate-[shoot-up-smooth_0.8s_cubic-bezier(0.4,0,0.2,1)_forwards]">
+                    <div className={`p-4 rounded-full bg-gradient-to-t ${selfMove.bg} shadow-[0_0_30px_rgba(255,255,255,0.4)] border-2 border-white`}>
+                        <selfMove.icon size={40} className="text-white" />
+                    </div>
+                </div>
+            )}
+            {enemyMove?.type === 'attack' && (
+                <div className="absolute top-24 left-1/2 -translate-x-1/2 flex items-center justify-center animate-[shoot-down-smooth_0.8s_cubic-bezier(0.4,0,0.2,1)_forwards]">
+                    <div className={`p-4 rounded-full bg-gradient-to-b ${enemyMove.bg} shadow-[0_0_30px_rgba(255,255,255,0.4)] border-2 border-white`}>
+                        <enemyMove.icon size={40} className="text-white" />
+                    </div>
+                </div>
+            )}
+            {selfMove?.type === 'attack' && enemyMove?.type === 'attack' && selfMove.power === enemyMove.power && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 animate-[boom-flash_0.5s_ease-out_forwards]">
+                    <Swords size={80} className="text-white" />
+                </div>
+            )}
+        </div>
+    );
+};
+
+const PlayerDisplay = ({ name, role, energy, move, isWinner, gameState, isSelf }) => {
+    const isShielding = (gameState === 'resolution' || gameState === 'gameover') && move?.id === 'shield';
+    const isLoading = (gameState === 'resolution' || gameState === 'gameover') && move?.id === 'load';
+
+    return (
+        <div className={`flex flex-col items-center relative w-full shrink-0 z-10 transition-all duration-500 ${isWinner ? 'scale-110' : ''}`}>
+            <div className={`mb-3 flex flex-col items-center gap-1 bg-[#0a0f20]/80 px-5 py-2 rounded-xl border transition-all duration-300 shadow-lg relative overflow-hidden backdrop-blur-md
+                ${isSelf ? 'border-blue-500/30' : 'border-red-500/30'}
+            `}>
+                <span className={`text-xs font-black uppercase tracking-widest ${isSelf ? 'text-blue-300' : 'text-red-300'}`}>{name}</span>
+                <div className="flex gap-1">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className={`h-1.5 w-1.5 md:h-2 md:w-2 rounded-full transition-all duration-300 ${i < energy ? (isSelf ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-red-500 shadow-[0_0_8px_red]') : 'bg-white/10'}`} />
+                    ))}
+                </div>
+            </div>
+
+            <div className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full border-4 flex items-center justify-center transition-all duration-500 shadow-2xl bg-[#050a18]
+                ${(gameState === 'resolution' || gameState === 'gameover') && move?.type === 'attack' ? 'scale-110 border-white' : 'border-slate-700'}
+                ${isWinner ? 'border-yellow-400 shadow-[0_0_40px_rgba(250,204,21,0.6)]' : ''}
+            `}>
+                {isShielding && <div className="absolute inset-[-10px] rounded-full border-2 border-blue-400 bg-blue-500/20 animate-pulse" />}
+                {isLoading && <div className="absolute inset-[-8px] rounded-full border-2 border-yellow-400 opacity-0 animate-[pulse-gold_1s_infinite]" />}
+
+                {isWinner ? <Trophy className="text-yellow-300 w-8 h-8 md:w-10 md:h-10 animate-bounce" /> :
+                    isSelf ? <User className="text-cyan-300 w-8 h-8 md:w-10 md:h-10" /> : <Skull className="text-red-400 w-8 h-8 md:w-10 md:h-10" />
+                }
+            </div>
+
+            <div className={`absolute ${isSelf ? 'right-[5%] md:right-[10%]' : 'left-[5%] md:left-[10%]'} top-1/2 -translate-y-1/2 transition-all duration-500 z-30
+                ${(gameState === 'resolution' || gameState === 'gameover' || (isSelf && move)) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}
+            `}>
+                {move && (
+                    <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 px-3 py-1 md:px-4 md:py-2 rounded-xl shadow-xl flex items-center gap-2">
+                        {!isSelf && gameState !== 'resolution' && gameState !== 'gameover' ? (
+                            <span className="text-xs text-slate-400 italic font-bold">...</span>
+                        ) : (
+                            <>
+                                <move.icon size={16} className={move.color} />
+                                <span className={`font-black text-[10px] md:text-xs uppercase ${move.color}`}>{move.name}</span>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default function App() { return <WizBattles />; }

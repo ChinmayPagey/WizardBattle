@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Trophy, Sparkles, Swords, Skull } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Trophy, Sparkles, Swords } from 'lucide-react';
 import io from 'socket.io-client';
 
 // --- CONFIGURATION ---
@@ -31,83 +31,108 @@ const styles = `
   
   /* Staff Movements */
   @keyframes staff-raise { 0% { transform: rotate(0deg); } 100% { transform: rotate(-90deg) translateY(-10px); } }
+  
+  /* Charge Cycle */
+  @keyframes staff-charge-cycle { 
+    0% { transform: rotate(0deg); } 
+    15% { transform: rotate(-90deg) translateY(-10px); } 
+    85% { transform: rotate(-90deg) translateY(-10px); } 
+    100% { transform: rotate(0deg); } 
+  }
+
   @keyframes staff-point { 0% { transform: rotate(0deg); } 100% { transform: rotate(-45deg) translateX(10px); } }
   @keyframes staff-slam { 0% { transform: rotate(0deg); } 50% { transform: rotate(-100deg); } 100% { transform: rotate(0deg); } }
 
-  /* Spell Effects */
-  @keyframes lightning-strike {
-    0% { height: 0; opacity: 0; }
-    10% { height: 100%; opacity: 1; }
-    20% { opacity: 0; }
-    30% { opacity: 1; }
-    100% { height: 100%; opacity: 0; }
-  }
-  
-  @keyframes shield-form {
-    0% { transform: scale(0); opacity: 0; }
-    100% { transform: scale(1); opacity: 0.6; }
-  }
+  /* Effects */
+  @keyframes lightning-strike { 0% { height: 0; opacity: 0; } 10% { height: 100%; opacity: 1; } 100% { height: 100%; opacity: 0; } }
+  @keyframes shield-form { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 0.6; } }
+  @keyframes spirit-grow { 0% { transform: scale(0) translateY(0); opacity: 0; } 50% { transform: scale(1) translateY(-80px); opacity: 1; } 100% { transform: scale(1) translateY(-80px) translateX(200px); opacity: 0; } }
+  @keyframes dragon-path { 0% { transform: translateX(0) scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateX(400px) scale(1.5); opacity: 0; } }
+  @keyframes beam-stretch { 0% { width: 0; opacity: 1; } 20% { width: 100%; opacity: 1; } 100% { width: 100%; opacity: 0; } }
+  @keyframes aura-kayoken { 0% { box-shadow: 0 0 10px #ef4444; } 50% { box-shadow: 0 0 30px #22d3ee; } 100% { box-shadow: 0 0 10px #eab308; } }
+  @keyframes die-fall { 0% { transform: rotate(0); } 100% { transform: rotate(90deg) translateY(50px); opacity: 0; } }
 
-  @keyframes spirit-grow {
-    0% { transform: scale(0) translateY(0); opacity: 0; }
-    50% { transform: scale(1) translateY(-80px); opacity: 1; }
-    100% { transform: scale(1) translateY(-80px) translateX(200px); opacity: 0; }
-  }
-
-  @keyframes dragon-path {
-    0% { transform: translateX(0) scale(0.5); opacity: 0; }
-    20% { opacity: 1; }
-    100% { transform: translateX(400px) scale(1.5); opacity: 0; }
-  }
-
-  @keyframes beam-stretch {
-    0% { width: 0; opacity: 1; }
-    20% { width: 100%; opacity: 1; }
-    100% { width: 100%; opacity: 0; }
-  }
-
-  @keyframes aura-kayoken {
-    0% { box-shadow: 0 0 10px #ef4444; }
-    50% { box-shadow: 0 0 30px #22d3ee; }
-    100% { box-shadow: 0 0 10px #eab308; }
-  }
+  /* INTRO ANIMATIONS */
+  @keyframes slide-in-left { 0% { transform: translateX(-100%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+  @keyframes slide-in-right { 0% { transform: translateX(100%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+  @keyframes drop-bounce { 0% { transform: scale(3); opacity: 0; } 60% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flash-white { 0% { background-color: white; } 100% { background-color: transparent; } }
 `;
 
+// --- INTRO SEQUENCE COMPONENT ---
+const IntroSequence = ({ p1Name, p2Name }) => {
+    return (
+        <div className="absolute inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden animate-[flash-white_0.2s_ease-out]">
+            {/* Background Split */}
+            <div className="absolute inset-0 flex">
+                <div className="w-1/2 h-full bg-gradient-to-r from-cyan-950 to-black border-r border-cyan-500/30"></div>
+                <div className="w-1/2 h-full bg-gradient-to-l from-red-950 to-black border-l border-red-500/30"></div>
+            </div>
+            
+            {/* Particles */}
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-50 animate-pulse"></div>
+
+            {/* Content Container */}
+            <div className="relative w-full max-w-4xl flex items-center justify-between px-4 md:px-10 z-10">
+                {/* Player 1 (Left) */}
+                <div className="flex flex-col items-center md:items-start animate-[slide-in-left_0.8s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+                    <div className="text-cyan-400 font-black tracking-widest text-sm md:text-xl mb-2 uppercase">Challenger 1</div>
+                    <h1 className="text-4xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-br from-cyan-200 to-blue-600 drop-shadow-[0_0_15px_rgba(34,211,238,0.8)] text-center md:text-left">
+                        {p1Name || "Player 1"}
+                    </h1>
+                </div>
+
+                {/* VS Symbol */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-[drop-bounce_1s_cubic-bezier(0.34,1.56,0.64,1)_0.5s_both]">
+                    <span className="text-6xl md:text-9xl font-black italic text-yellow-400 drop-shadow-[0_0_50px_rgba(234,179,8,0.8)] relative z-20">VS</span>
+                    <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white w-32 h-32 md:w-64 md:h-64 opacity-50 z-10" />
+                </div>
+
+                {/* Player 2 (Right) */}
+                <div className="flex flex-col items-center md:items-end animate-[slide-in-right_0.8s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+                    <div className="text-red-400 font-black tracking-widest text-sm md:text-xl mb-2 uppercase">Challenger 2</div>
+                    <h1 className="text-4xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-bl from-red-200 to-orange-600 drop-shadow-[0_0_15px_rgba(248,113,113,0.8)] text-center md:text-right">
+                        {p2Name || "Player 2"}
+                    </h1>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- WIZARD FIGURE COMPONENT ---
-const WizardFigure = ({ isSelf, move, gameState, isWinner }) => {
-    // Determine animation states
+const WizardFigure = ({ isSelf, move, gameState, isWinner, isDead }) => {
     const isActing = gameState === 'resolution';
     
-    // Default Idle
+    // Animation Logic
     let staffClass = "origin-[20%_80%]"; 
     let effect = null;
-    let wizardClass = "animate-[float-idle_3s_infinite_ease-in-out]";
+    let wrapperClass = "animate-[float-idle_3s_infinite_ease-in-out]";
 
-    if (isActing && move) {
+    if (isDead) {
+        wrapperClass = "animate-[die-fall_1.5s_forwards]";
+    } else if (isWinner) {
+        wrapperClass = "animate-bounce";
+    }
+
+    if (isActing && move && !isDead) {
         switch (move.id) {
             case 'load':
-                staffClass += " animate-[staff-raise_0.5s_forwards]";
-                effect = (
-                    <div className="absolute -top-20 left-6 w-2 h-40 bg-yellow-300 shadow-[0_0_20px_yellow] origin-top animate-[lightning-strike_0.8s_ease-out]"></div>
-                );
+                staffClass += " animate-[staff-charge-cycle_2s_ease-in-out]";
+                effect = <div className="absolute -top-20 left-6 w-2 h-40 bg-yellow-300 shadow-[0_0_20px_yellow] origin-top animate-[lightning-strike_0.8s_ease-out]"></div>;
                 break;
             case 'shield':
                 staffClass += " animate-[staff-slam_0.5s_forwards]";
-                effect = (
-                    <div className="absolute -top-4 -left-4 w-32 h-32 rounded-full border-4 border-blue-400 bg-blue-500/20 shadow-[0_0_30px_blue] animate-[shield-form_0.5s_ease-out_forwards]"></div>
-                );
+                effect = <div className="absolute -top-4 -left-4 w-32 h-32 rounded-full border-4 border-blue-400 bg-blue-500/20 shadow-[0_0_30px_blue] animate-[shield-form_0.5s_ease-out_forwards]"></div>;
                 break;
             case 'fireball':
             case 'disc':
                 staffClass += " animate-[staff-point_0.3s_forwards]";
-                // Projectile is handled by StageAnimations, but we add a flash at tip
                 effect = <div className={`absolute top-0 right-[-10px] w-8 h-8 rounded-full ${move.bg} blur-md animate-ping`}></div>;
                 break;
             case 'beam':
                 staffClass += " animate-[staff-point_0.3s_forwards]";
-                effect = (
-                     <div className="absolute top-2 left-12 h-4 bg-cyan-400 shadow-[0_0_15px_cyan] origin-left animate-[beam-stretch_1s_ease-out]" style={{ width: '400px' }}></div>
-                );
+                effect = <div className="absolute top-2 left-12 h-4 bg-cyan-400 shadow-[0_0_15px_cyan] origin-left animate-[beam-stretch_1s_ease-out]" style={{ width: '400px' }}></div>;
                 break;
             case 'kayoken':
                 staffClass += " animate-[staff-point_0.5s_forwards]";
@@ -115,67 +140,47 @@ const WizardFigure = ({ isSelf, move, gameState, isWinner }) => {
                 break;
             case 'spirit':
                 staffClass += " animate-[staff-raise_0.5s_forwards]";
-                effect = (
-                    <div className="absolute -top-10 left-0 w-24 h-24 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-600 shadow-[0_0_50px_cyan] animate-[spirit-grow_1.5s_ease-in-out_forwards]"></div>
-                );
+                effect = <div className="absolute -top-10 left-0 w-24 h-24 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-600 shadow-[0_0_50px_cyan] animate-[spirit-grow_1.5s_ease-in-out_forwards]"></div>;
                 break;
             case 'dragon':
                 staffClass += " animate-[staff-point_0.5s_forwards]";
-                // Dragon handled in stage mostly, but we add a gold flare
                 effect = <div className="absolute top-0 right-0 w-12 h-12 bg-amber-400 blur-xl animate-pulse"></div>
                 break;
             default: break;
         }
     }
 
-    if (isWinner) wizardClass += " animate-bounce";
-
-    // Colors
     const robeColor = isSelf ? "fill-cyan-900 stroke-cyan-400" : "fill-red-950 stroke-red-500";
     const hatColor = isSelf ? "fill-slate-800 stroke-cyan-400" : "fill-slate-800 stroke-red-500";
     const staffColor = "stroke-amber-600";
     const gemColor = move ? move.color.replace('text-', 'fill-') : "fill-emerald-400";
 
-    // Important: ENEMY is flipped via scale-x
+    // Responsive sizing using Tailwind classes in the container (w-16 on mobile, w-24 on desktop)
     return (
-        <div className={`relative w-24 h-48 flex items-end justify-center ${wizardClass} ${!isSelf ? '-scale-x-100' : ''}`}>
-            {effect}
+        <div className={`relative w-16 h-32 md:w-24 md:h-48 flex items-end justify-center transition-all duration-500 ${wrapperClass}`}>
             
-            <svg viewBox="0 0 100 200" className="w-full h-full drop-shadow-2xl overflow-visible">
-                {/* ROBE / BODY */}
+            {/* EFFECT OVERLAY */}
+            <div className={`absolute inset-0 pointer-events-none z-10 ${!isSelf ? '-scale-x-100' : ''}`}>
+                {effect}
+            </div>
+            
+            {/* WIZARD SVG - FLIPPED IF ENEMY */}
+            <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-2xl overflow-visible ${!isSelf ? '-scale-x-100' : ''}`}>
                 <path d="M 30,180 L 70,180 L 60,80 L 40,80 Z" className={`${robeColor} stroke-2`} />
-                
-                {/* HEAD */}
                 <circle cx="50" cy="70" r="15" className="fill-slate-200" />
-                
-                {/* HAT */}
                 <path d="M 25,60 L 75,60 L 50,10 Z" className={`${hatColor} stroke-2`} />
                 
-                {/* STAFF ARM GROUP (Rotates based on move) */}
                 <g className={`transition-transform duration-500 ${staffClass}`} style={{ transformOrigin: '50px 80px' }}>
-                    {/* ARM */}
                     <line x1="50" y1="80" x2="70" y2="100" className={`${robeColor} stroke-[6]`} strokeLinecap="round" />
-                    
-                    {/* STAFF STICK */}
                     <line x1="70" y1="130" x2="70" y2="30" className={`${staffColor} stroke-[4]`} strokeLinecap="round" />
-                    
-                    {/* STAFF GEM */}
                     <circle cx="70" cy="30" r="6" className={`${gemColor} animate-pulse shadow-lg`} />
                 </g>
 
-                {/* EYES (Direction) */}
                 <circle cx="55" cy="68" r="2" fill="black" />
             </svg>
 
             {/* GROUND SHADOW */}
-            <div className="absolute bottom-0 w-20 h-4 bg-black/60 blur-md rounded-full"></div>
-            
-            {/* NAME TAG (Unflip text for enemy) */}
-             <div className={`absolute -top-10 whitespace-nowrap ${!isSelf ? '-scale-x-100' : ''}`}>
-                 <span className={`font-black uppercase text-xs px-2 py-1 rounded bg-black/60 border ${isSelf ? 'border-cyan-500 text-cyan-200' : 'border-red-500 text-red-200'}`}>
-                    {isSelf ? "YOU" : "ENEMY"}
-                 </span>
-            </div>
+            <div className="absolute bottom-0 w-full h-4 bg-black/60 blur-md rounded-full -z-10"></div>
         </div>
     );
 };
@@ -185,6 +190,8 @@ function WizBattles() {
   const [room, setRoom] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [joined, setJoined] = useState(false);
+  const [showIntro, setShowIntro] = useState(false); // State for Intro Animation
+
   const [myRole, setMyRole] = useState(null); 
   const [gameState, setGameState] = useState('menu'); 
   const [p1Energy, setP1Energy] = useState(INITIAL_ENERGY);
@@ -199,7 +206,7 @@ function WizBattles() {
 
   // --- NARRATIVE ENGINE ---
   const getNarrative = (m1, m2, n1, n2, winner) => {
-    // n1 is P1 (Left), n2 is P2 (Right)
+    // n1 is P1, n2 is P2
     const bothAtk = m1.type === 'attack' && m2.type === 'attack';
 
     if (bothAtk && m1.power === m2.power) {
@@ -213,7 +220,6 @@ function WizBattles() {
     }
     
     // Attack vs Defense
-    const attacker = m1.type === 'attack' ? n1 : n2;
     const defender = m1.type === 'attack' ? n2 : n1;
     const atkMove = m1.type === 'attack' ? m1 : m2;
     const defMove = m1.type === 'attack' ? m2 : m1;
@@ -228,7 +234,7 @@ function WizBattles() {
             ? `Dragon Fist ignores the Rebound! ${defender} is crushed!` 
             : `${defender} deflected the ${atkMove.name} right back!`;
     }
-    if (defMove.id === 'kayoken') return `${defender} vanished into a prism of light! ${atkMove.name} missed!`;
+    if (defMove.id === 'kayoken') return `${defender} vanished into light! ${atkMove.name} missed!`;
     if (defMove.id === 'load') return `Direct hit! ${defender} was caught channeling energy!`;
 
     return `The wizards circle each other... gathering power.`;
@@ -236,7 +242,17 @@ function WizBattles() {
 
   useEffect(() => {
     socket.on("player_assignment", (role) => setMyRole(role));
-    socket.on("game_start", () => { setMessage("BATTLE START! Cast your spell!"); setGameState('playing'); });
+    
+    socket.on("game_start", () => { 
+        // Trigger Intro
+        setShowIntro(true);
+        setTimeout(() => {
+            setShowIntro(false);
+            setMessage("BATTLE START! Cast your spell!"); 
+            setGameState('playing'); 
+        }, 3000); // 3 Seconds Intro
+    });
+
     socket.on("room_full", () => { alert("Room Full!"); setJoined(false); });
     socket.on("player_disconnected", () => { alert("Opponent Left."); window.location.reload(); });
     socket.on("waiting_for_opponent", () => { setMessage("Spell Prepared. Waiting..."); setGameState('waiting'); });
@@ -251,7 +267,7 @@ function WizBattles() {
         setP1Move(move1); setP2Move(move2);
         setGameState('resolution');
         
-        setTimeout(() => { resolveTurn(move1, move2, name1, name2); }, 2500); 
+        setTimeout(() => { resolveTurn(move1, move2, name1, name2); }, 2000); 
     });
 
     return () => {
@@ -282,7 +298,7 @@ function WizBattles() {
     if (move1.id === 'load') p1Net += 1; else if (move1.id === 'kayoken') p1Net += 3; else p1Net -= move1.cost;
     if (move2.id === 'load') p2Net += 1; else if (move2.id === 'kayoken') p2Net += 3; else p2Net -= move2.cost;
 
-    // Combat
+    // Combat Logic
     const p1Atk = move1.type === 'attack';
     const p2Atk = move2.type === 'attack';
 
@@ -310,18 +326,22 @@ function WizBattles() {
     setP2Energy(prev => Math.max(0, prev + p2Net));
 
     if (p1Death || p2Death) {
-        setGameState('gameover');
         if (p1Death && p2Death) setWinner('draw');
         else if (p1Death) { setWinner('p2'); setWins(w => ({...w, p2: w.p2+1})); }
         else { setWinner('p1'); setWins(w => ({...w, p1: w.p1+1})); }
+
+        setTimeout(() => {
+             setGameState('gameover');
+        }, 2500); 
     } else {
         setTimeout(() => {
             setGameState('playing'); setP1Move(null); setP2Move(null); setMessage("Select next spell!");
-        }, 4000);
+        }, 3500);
     }
   };
 
   const restartGame = () => { setGameState('playing'); setP1Energy(0); setP2Energy(0); setP1Move(null); setP2Move(null); setWinner(null); setMessage("Duel Restarted"); };
+  
   const renderCard = (moveKey) => {
     const move = MOVES[moveKey];
     const myEnergy = myRole === 'p1' ? p1Energy : p2Energy;
@@ -329,9 +349,9 @@ function WizBattles() {
     return (
       <button key={move.id} disabled={!canAfford || gameState !== 'playing'} onClick={() => sendMove(moveKey)}
         className={`group relative flex flex-col items-center justify-between p-2 rounded-xl border-2 transition-all duration-300 ${!canAfford ? 'opacity-40 grayscale scale-95 border-slate-700 bg-slate-900/50' : `hover:-translate-y-1 hover:shadow-xl cursor-pointer bg-gradient-to-br ${move.bg} border-white/20 shadow-lg`}`}>
-        <div className={`relative z-10 p-2 rounded-full bg-black/40 mb-1 ${move.color} border border-white/10`}><move.icon size={20} /></div>
-        <span className={`relative z-10 font-black text-[10px] uppercase text-white drop-shadow-md`}>{move.name}</span>
-        <div className={`absolute top-0 right-0 rounded-bl-lg px-1.5 py-0.5 text-[10px] font-black text-white ${move.req ? 'bg-red-900' : (move.cost > 0 ? 'bg-blue-900' : 'bg-slate-800')}`}>{move.req ? '4+' : move.cost}</div>
+        <div className={`relative z-10 p-1.5 md:p-2 rounded-full bg-black/40 mb-1 ${move.color} border border-white/10`}><move.icon size={18} className="md:w-5 md:h-5" /></div>
+        <span className={`relative z-10 font-black text-[9px] md:text-[10px] uppercase text-white drop-shadow-md truncate w-full text-center`}>{move.name}</span>
+        <div className={`absolute top-0 right-0 rounded-bl-lg px-1.5 py-0.5 text-[8px] md:text-[10px] font-black text-white ${move.req ? 'bg-red-900' : (move.cost > 0 ? 'bg-blue-900' : 'bg-slate-800')}`}>{move.req ? '4+' : move.cost}</div>
       </button>
     );
   };
@@ -339,8 +359,8 @@ function WizBattles() {
   if (!joined) return (
     <div className="h-screen w-full bg-[#050a18] flex flex-col items-center justify-center text-white relative overflow-hidden font-sans">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_var(--tw-gradient-stops))] from-indigo-900/40 via-black to-black"></div>
-        <h1 className="text-6xl font-black italic text-transparent bg-clip-text bg-gradient-to-br from-cyan-400 to-purple-600 drop-shadow-2xl z-10 mb-8 tracking-tighter">WIZ BATTLES</h1>
-        <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-2xl border border-white/10 flex flex-col gap-4 w-[350px] z-10 shadow-2xl">
+        <h1 className="text-5xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-br from-cyan-400 to-purple-600 drop-shadow-2xl z-10 mb-8 tracking-tighter">WIZ BATTLES</h1>
+        <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-2xl border border-white/10 flex flex-col gap-4 w-[320px] md:w-[350px] z-10 shadow-2xl">
             <input placeholder="Wizard Name" className="bg-[#0a0f20] border border-slate-700 p-3 rounded-xl text-white font-bold outline-none focus:border-cyan-500" onChange={(e) => setPlayerName(e.target.value)} />
             <input placeholder="Room Code" className="bg-[#0a0f20] border border-slate-700 p-3 rounded-xl text-white font-bold outline-none focus:border-cyan-500" onChange={(e) => setRoom(e.target.value)} />
             <button onClick={joinRoom} className="bg-gradient-to-r from-cyan-600 to-blue-600 py-3 rounded-xl font-black text-white hover:scale-105 transition-transform uppercase tracking-widest">Enter Arena</button>
@@ -356,69 +376,88 @@ function WizBattles() {
       <style>{styles}</style>
       <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-slate-900 via-[#050a18] to-black"></div>
       
+      {/* INTRO OVERLAY */}
+      {showIntro && <IntroSequence p1Name={p1Name} p2Name={p2Name} />}
+
       {/* HEADER */}
-      <div className="relative z-20 w-full h-16 flex justify-between items-center px-6 bg-slate-950/80 border-b border-white/5 backdrop-blur-sm">
-        <span className="font-black italic text-cyan-400 text-xl tracking-tighter">WIZ BATTLES</span>
-        <div className="flex gap-4 font-bold text-xs uppercase text-slate-500">
+      <div className="relative z-20 w-full h-14 md:h-16 flex justify-between items-center px-4 md:px-6 bg-slate-950/80 border-b border-white/5 backdrop-blur-sm">
+        <span className="font-black italic text-cyan-400 text-lg md:text-xl tracking-tighter">WIZ BATTLES</span>
+        <div className="flex gap-4 font-bold text-[10px] md:text-xs uppercase text-slate-500">
              <span>Wins: <span className="text-white">{wins.p1}</span> - <span className="text-white">{wins.p2}</span></span>
         </div>
       </div>
 
       {/* BATTLE STAGE */}
-      <div className="flex-1 relative flex items-end justify-between px-4 md:px-20 pb-20 max-w-7xl mx-auto w-full z-10">
+      <div className="flex-1 relative flex items-end justify-between px-2 md:px-20 pb-20 md:pb-24 max-w-7xl mx-auto w-full z-10">
           
           <StageAnimations gameState={gameState} p1Move={p1Move} p2Move={p2Move} myRole={myRole} />
 
           {/* LEFT: SELF */}
-          <div className="flex flex-col items-center gap-4 relative z-20">
+          <div className="flex flex-col items-center gap-2 md:gap-4 relative z-20">
              <div className="flex flex-col items-center">
-                <div className="flex gap-1 mb-2">
+                <div className="flex gap-1 mb-1 md:mb-2">
                     {[...Array(8)].map((_, i) => (
-                        <div key={i} className={`w-3 h-1.5 rounded-sm ${i < (myRole === 'p1' ? p1Energy : p2Energy) ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-800'}`}></div>
+                        <div key={i} className={`w-2 h-1 md:w-3 md:h-1.5 rounded-sm ${i < (myRole === 'p1' ? p1Energy : p2Energy) ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-800'}`}></div>
                     ))}
                 </div>
-                <span className="text-cyan-400 font-black uppercase tracking-widest text-lg drop-shadow-md">{myName}</span>
+                <span className="text-cyan-400 font-black uppercase tracking-widest text-sm md:text-lg drop-shadow-md">{myName}</span>
              </div>
-             <WizardFigure isSelf={true} move={myRole === 'p1' ? p1Move : p2Move} gameState={gameState} isWinner={winner === myRole} />
+             
+             <WizardFigure 
+                isSelf={true} 
+                move={myRole === 'p1' ? p1Move : p2Move} 
+                gameState={gameState} 
+                isWinner={winner === myRole}
+                isDead={gameState === 'gameover' && winner !== myRole && winner !== 'draw'}
+             />
           </div>
 
           {/* MESSAGE CENTER */}
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 text-center w-full max-w-3xl z-30 pointer-events-none px-4">
-             <h2 className="text-xl md:text-3xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight">
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 text-center w-full max-w-[90%] md:max-w-3xl z-30 pointer-events-none px-2">
+             <h2 className="text-lg md:text-3xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight transition-all duration-300 transform">
                 {message}
              </h2>
           </div>
 
           {/* RIGHT: ENEMY */}
-          <div className="flex flex-col items-center gap-4 relative z-20">
+          <div className="flex flex-col items-center gap-2 md:gap-4 relative z-20">
              <div className="flex flex-col items-center">
-                <div className="flex gap-1 mb-2">
+                <div className="flex gap-1 mb-1 md:mb-2">
                     {[...Array(8)].map((_, i) => (
-                        <div key={i} className={`w-3 h-1.5 rounded-sm ${i < (myRole === 'p1' ? p2Energy : p1Energy) ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-slate-800'}`}></div>
+                        <div key={i} className={`w-2 h-1 md:w-3 md:h-1.5 rounded-sm ${i < (myRole === 'p1' ? p2Energy : p1Energy) ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-slate-800'}`}></div>
                     ))}
                 </div>
-                <span className="text-red-400 font-black uppercase tracking-widest text-lg drop-shadow-md">{oppName}</span>
+                <span className="text-red-400 font-black uppercase tracking-widest text-sm md:text-lg drop-shadow-md">{oppName}</span>
              </div>
-             <WizardFigure isSelf={false} move={myRole === 'p1' ? p2Move : p1Move} gameState={gameState} isWinner={winner === (myRole === 'p1' ? 'p2' : 'p1')} />
+             
+             <WizardFigure 
+                isSelf={false} 
+                move={myRole === 'p1' ? p2Move : p1Move} 
+                gameState={gameState} 
+                isWinner={winner === (myRole === 'p1' ? 'p2' : 'p1')}
+                isDead={gameState === 'gameover' && winner !== (myRole === 'p1' ? 'p2' : 'p1') && winner !== 'draw'}
+             />
           </div>
       </div>
 
       {/* CONTROLS */}
-      <div className="relative z-30 bg-slate-900/90 backdrop-blur-xl border-t border-white/10 p-4 pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+      <div className="relative z-30 bg-slate-900/90 backdrop-blur-xl border-t border-white/10 p-2 md:p-4 pb-6 md:pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
          <div className="max-w-4xl mx-auto grid grid-cols-3 sm:grid-cols-4 md:grid-cols-9 gap-2">
             {Object.keys(MOVES).map(key => renderCard(key))}
          </div>
       </div>
 
-      {/* GAME OVER */}
+      {/* GAME OVER MODAL */}
       {gameState === 'gameover' && (
-         <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-500">
-            <div className="bg-gradient-to-b from-slate-900 to-black border-2 border-yellow-500/50 p-12 rounded-3xl text-center flex flex-col gap-6 shadow-[0_0_100px_rgba(234,179,8,0.3)]">
-                <Trophy size={64} className="text-yellow-400 mx-auto animate-bounce" />
-                <h2 className="text-6xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-600">
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 animate-in zoom-in duration-300 w-full max-w-sm px-4">
+            <div className="bg-black/80 backdrop-blur-md border border-yellow-500/50 px-6 py-8 rounded-2xl text-center shadow-2xl flex flex-col items-center gap-4 w-full">
+                <Trophy size={48} className="text-yellow-400 animate-bounce" />
+                <h2 className="text-4xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500">
                     {winner === 'draw' ? 'DRAW' : (winner === myRole ? 'VICTORY' : 'DEFEAT')}
                 </h2>
-                <button onClick={restartGame} className="px-10 py-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-xl rounded-full hover:scale-105 transition-transform uppercase tracking-widest shadow-lg">Play Again</button>
+                <button onClick={restartGame} className="px-8 py-2 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-lg rounded-full hover:scale-105 transition-transform uppercase tracking-widest shadow-lg">
+                    Play Again
+                </button>
             </div>
          </div>
       )}
@@ -437,15 +476,16 @@ const StageAnimations = ({ gameState, p1Move, p2Move, myRole }) => {
     const renderProjectile = (move, isSelf) => {
         if (!move || move.type !== 'attack') return null;
         
-        // CSS classes for direction
+        // Direction logic:
+        // Self (Left) shoots Left->Right
+        // Enemy (Right) shoots Right->Left (Needs x-axis flip)
         const animClass = isSelf 
-            ? "left-24 animate-[dragon-path_1s_ease-in_forwards]" 
-            : "right-24 animate-[dragon-path_1s_ease-in_forwards] -scale-x-100"; // Enemy shoots right-to-left
+            ? "left-8 md:left-24 animate-[dragon-path_1s_ease-in_forwards]" 
+            : "right-8 md:right-24 animate-[dragon-path_1s_ease-in_forwards] -scale-x-100"; 
             
         if (move.id === 'dragon') {
             return (
-                <div className={`absolute top-1/2 -translate-y-1/2 w-32 h-32 ${animClass}`}>
-                     {/* SVG DRAGON SHAPE */}
+                <div className={`absolute top-1/2 -translate-y-1/2 w-20 h-20 md:w-32 md:h-32 ${animClass}`}>
                      <svg viewBox="0 0 100 50" className="w-full h-full drop-shadow-[0_0_20px_orange]">
                         <path d="M 10,25 Q 30,5 50,25 T 90,25 L 80,15 M 90,25 L 80,35" fill="none" stroke="gold" strokeWidth="4" />
                         <circle cx="90" cy="25" r="5" fill="red" />
@@ -457,8 +497,8 @@ const StageAnimations = ({ gameState, p1Move, p2Move, myRole }) => {
         if (move.id === 'fireball' || move.id === 'disc') {
             return (
                 <div className={`absolute top-1/2 -translate-y-1/2 ${animClass}`}>
-                     <div className={`w-12 h-12 rounded-full ${move.bg} border-2 border-white shadow-[0_0_20px_currentColor] flex items-center justify-center`}>
-                        <move.icon className="text-white animate-spin" size={24} />
+                     <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full ${move.bg} border-2 border-white shadow-[0_0_20px_currentColor] flex items-center justify-center`}>
+                        <move.icon className="text-white animate-spin" size={20} />
                      </div>
                 </div>
             );
@@ -474,7 +514,7 @@ const StageAnimations = ({ gameState, p1Move, p2Move, myRole }) => {
              {/* Clash */}
              {selfMove?.type === 'attack' && enemyMove?.type === 'attack' && selfMove.power === enemyMove.power && (
                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
-                     <Swords size={96} className="text-white animate-ping" />
+                     <Swords size={64} className="text-white animate-ping md:w-24 md:h-24" />
                      <div className="absolute inset-0 bg-white blur-3xl rounded-full scale-150 animate-pulse"></div>
                  </div>
              )}

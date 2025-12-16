@@ -167,15 +167,19 @@ function WizBattles() {
             handleRoundResolution(data.p1Move, data.p2Move);
         });
 
-        socket.on("receive_chat", ({ message, playerName, timestamp }) => {
-            setChatMessages(prev => [...prev, { message, playerName, timestamp, id: Math.random() }]);
+        socket.on("receive_chat", ({ message, playerName, timestamp, senderId }) => {
+            // Mark if this message is from us
+            const isSelf = senderId === socket.id;
+            setChatMessages(prev => [...prev, { message, playerName, timestamp, id: Math.random(), isSelf }]);
         });
 
-        socket.on("receive_emoji", ({ emoji, playerRole, timestamp }) => {
+        socket.on("receive_emoji", ({ emoji, playerRole, timestamp, senderId }) => {
             const emojiData = EMOJIS.find(e => e.id === emoji);
             if (emojiData) {
                 const id = Math.random();
-                setActiveEmojis(prev => [...prev, { ...emojiData, playerRole, id, timestamp }]);
+                // Determine if this emoji is from us
+                const isSelf = senderId === socket.id;
+                setActiveEmojis(prev => [...prev, { ...emojiData, playerRole, id, timestamp, isSelf }]);
                 setTimeout(() => {
                     setActiveEmojis(prev => prev.filter(e => e.id !== id));
                 }, 3000);
@@ -195,135 +199,215 @@ function WizBattles() {
     }, [isBotMode, joined]);
 
     // --- ENHANCED BOT LOGIC ---
-    const botMemory = useRef({ playerMoves: [], consecutiveLoads: 0, aggressiveness: 0.5 });
+    const botMemory = useRef({
+        playerMoves: [],
+        consecutiveLoads: 0,
+        aggressiveness: 0.5,
+        moveFrequency: {}, // Track how often bot uses each move
+        lastMove: null,
+        consecutiveSameMove: 0
+    });
 
     const getSmartBotMove = (botEnergy, playerEnergy) => {
         const moves = Object.values(MOVES);
         const affordable = moves.filter(m => (m.req ? botEnergy >= m.req : botEnergy >= m.cost));
         const memory = botMemory.current;
 
-        // Analyze player patterns
-        const recentMoves = memory.playerMoves.slice(-3);
+        // Analyze player patterns - look at last 5 moves for better learning
+        const recentMoves = memory.playerMoves.slice(-5);
         const playerUsedShield = recentMoves.filter(m => m?.id === 'shield').length > 0;
         const playerUsedRebound = recentMoves.filter(m => m?.id === 'rebound').length > 0;
-        const playerIsAggressive = recentMoves.filter(m => m?.type === 'attack').length >= 2;
-        const playerIsDefensive = recentMoves.filter(m => m?.type === 'defense' || m?.id === 'kayoken').length >= 2;
+        const playerIsAggressive = recentMoves.filter(m => m?.type === 'attack').length >= 3;
+        const playerIsDefensive = recentMoves.filter(m => m?.type === 'defense' || m?.id === 'kayoken').length >= 3;
+        const playerLoadsOften = recentMoves.filter(m => m?.id === 'load').length >= 3;
+
+        // Detect player's most used move
+        const moveCounts = {};
+        recentMoves.forEach(m => {
+            if (m) moveCounts[m.id] = (moveCounts[m.id] || 0) + 1;
+        });
+        const playerFavoriteMove = Object.keys(moveCounts).reduce((a, b) =>
+            moveCounts[a] > moveCounts[b] ? a : b, null
+        );
 
         // Adjust bot personality based on game state
-        if (playerEnergy > botEnergy + 2) memory.aggressiveness = Math.min(0.8, memory.aggressiveness + 0.1);
-        else if (botEnergy > playerEnergy + 2) memory.aggressiveness = Math.max(0.3, memory.aggressiveness - 0.1);
+        if (playerEnergy > botEnergy + 2) memory.aggressiveness = Math.min(0.8, memory.aggressiveness + 0.05);
+        else if (botEnergy > playerEnergy + 2) memory.aggressiveness = Math.max(0.3, memory.aggressiveness - 0.05);
+
+        // Helper function to avoid repeating same move
+        const shouldAvoidMove = (move) => {
+            if (memory.lastMove?.id === move.id) {
+                memory.consecutiveSameMove++;
+                // Avoid using same move more than 2 times in a row (unless it's critical)
+                if (memory.consecutiveSameMove >= 2 && Math.random() > 0.3) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        const selectMove = (move) => {
+            if (memory.lastMove?.id === move.id) {
+                memory.consecutiveSameMove++;
+            } else {
+                memory.consecutiveSameMove = 0;
+            }
+            memory.lastMove = move;
+            memory.moveFrequency[move.id] = (memory.moveFrequency[move.id] || 0) + 1;
+            return move;
+        };
 
         // 1. INSTANT WIN - Always take it, but add slight delay for realism
-        if (botEnergy >= 8 && Math.random() > 0.05) return MOVES.DRAGON;
+        if (botEnergy >= 8 && Math.random() > 0.05) return selectMove(MOVES.DRAGON);
 
         // 2. CRITICAL SURVIVAL - Player can kill us
         if (playerEnergy >= 5) {
             const survivalChance = 0.7 + (playerEnergy - 5) * 0.1;
             if (Math.random() < survivalChance) {
+                const survivalOptions = [];
+
                 // Prioritize based on player pattern
                 if (playerUsedRebound && affordable.find(m => m.id === 'kayoken')) {
-                    return MOVES.KAYOKEN; // Dodge if they like rebound
+                    survivalOptions.push(MOVES.KAYOKEN);
                 }
-                if (affordable.find(m => m.id === 'rebound') && Math.random() > 0.3) {
-                    return MOVES.REBOUND; // Counter-attack
+                if (affordable.find(m => m.id === 'rebound') && !playerUsedRebound) {
+                    survivalOptions.push(MOVES.REBOUND);
                 }
                 if (affordable.find(m => m.id === 'shield') && !playerUsedRebound) {
-                    return MOVES.SHIELD; // Shield if they don't use rebound
+                    survivalOptions.push(MOVES.SHIELD);
                 }
                 if (affordable.find(m => m.id === 'kayoken')) {
-                    return MOVES.KAYOKEN; // Last resort dodge
+                    survivalOptions.push(MOVES.KAYOKEN);
+                }
+
+                // Pick randomly from survival options to avoid predictability
+                if (survivalOptions.length > 0) {
+                    return selectMove(survivalOptions[Math.floor(Math.random() * survivalOptions.length)]);
                 }
             }
         }
 
         // 3. SPIRIT BOMB OPPORTUNITY - High damage when safe
         if (botEnergy >= 5 && affordable.find(m => m.id === 'spirit')) {
-            if (playerEnergy < 3 || (playerIsAggressive && Math.random() > 0.4)) {
-                return MOVES.SPIRIT;
+            const spiritChance = playerEnergy < 3 ? 0.7 : (playerIsAggressive ? 0.5 : 0.3);
+            if (Math.random() < spiritChance && !shouldAvoidMove(MOVES.SPIRIT)) {
+                return selectMove(MOVES.SPIRIT);
             }
         }
 
         // 4. TACTICAL KAYOKEN - Energy boost when needed
-        if (botEnergy >= 4 && botEnergy < 6 && affordable.find(m => m.id === 'kayoken')) {
-            if (playerEnergy >= 3 && Math.random() > 0.5) {
-                return MOVES.KAYOKEN; // Dodge and gain energy
+        if (botEnergy >= 4 && botEnergy < 7 && affordable.find(m => m.id === 'kayoken')) {
+            const kayokenChance = playerEnergy >= 3 ? 0.6 : 0.3;
+            if (Math.random() < kayokenChance && !shouldAvoidMove(MOVES.KAYOKEN)) {
+                return selectMove(MOVES.KAYOKEN);
             }
         }
 
-        // 5. PUNISH WEAKNESS - Player has no energy
-        if (playerEnergy === 0 || playerEnergy === 1) {
-            if (botEnergy >= 3 && affordable.find(m => m.id === 'disc')) {
-                return MOVES.DISC; // Pierce through shield
-            }
-            if (botEnergy >= 2 && affordable.find(m => m.id === 'beam') && Math.random() > 0.3) {
-                return MOVES.BEAM;
-            }
-            if (botEnergy >= 1 && affordable.find(m => m.id === 'fireball')) {
-                return MOVES.FIREBALL;
+        // 5. PUNISH WEAKNESS - Player has low energy
+        if (playerEnergy <= 1) {
+            const attackOptions = [];
+            if (botEnergy >= 3 && affordable.find(m => m.id === 'disc')) attackOptions.push(MOVES.DISC);
+            if (botEnergy >= 2 && affordable.find(m => m.id === 'beam')) attackOptions.push(MOVES.BEAM);
+            if (botEnergy >= 1 && affordable.find(m => m.id === 'fireball')) attackOptions.push(MOVES.FIREBALL);
+
+            if (attackOptions.length > 0 && Math.random() > 0.2) {
+                // Prefer higher power but add randomness
+                const weights = attackOptions.map((_, i) => attackOptions.length - i);
+                const totalWeight = weights.reduce((a, b) => a + b, 0);
+                let random = Math.random() * totalWeight;
+                for (let i = 0; i < attackOptions.length; i++) {
+                    random -= weights[i];
+                    if (random <= 0) return selectMove(attackOptions[i]);
+                }
             }
         }
 
-        // 6. COUNTER DEFENSIVE PLAYERS
+        // 6. COUNTER DEFENSIVE PLAYERS - Use Disc to pierce shields
         if (playerIsDefensive && botEnergy >= 3) {
-            if (affordable.find(m => m.id === 'disc') && Math.random() > 0.4) {
-                return MOVES.DISC; // Disc pierces shield
+            if (affordable.find(m => m.id === 'disc') && Math.random() > 0.5 && !shouldAvoidMove(MOVES.DISC)) {
+                return selectMove(MOVES.DISC);
             }
         }
 
-        // 7. AGGRESSIVE PLAY - When ahead or player is aggressive
-        if ((botEnergy > playerEnergy || playerIsAggressive) && memory.aggressiveness > 0.5) {
+        // 7. COUNTER PLAYER'S FAVORITE MOVE
+        if (playerFavoriteMove && Math.random() > 0.6) {
+            if (playerFavoriteMove === 'shield' && botEnergy >= 3 && affordable.find(m => m.id === 'disc')) {
+                return selectMove(MOVES.DISC); // Pierce shields
+            }
+            if (playerFavoriteMove === 'load' && playerLoadsOften && botEnergy >= 2) {
+                // Punish loading with attacks
+                const attacks = affordable.filter(m => m.type === 'attack');
+                if (attacks.length > 0) {
+                    return selectMove(attacks[Math.floor(Math.random() * attacks.length)]);
+                }
+            }
+        }
+
+        // 8. AGGRESSIVE PLAY - When ahead or player is aggressive
+        if ((botEnergy > playerEnergy + 1 || playerIsAggressive) && memory.aggressiveness > 0.5) {
             const viableAttacks = affordable.filter(m =>
                 m.type === 'attack' && m.cost <= botEnergy - 1 // Keep 1 energy reserve
             );
-            if (viableAttacks.length > 0 && Math.random() > 0.3) {
-                // Prefer higher power attacks when we have energy
+            if (viableAttacks.length > 0 && Math.random() > 0.4) {
+                // Add variety - don't always pick highest power
+                const randomIndex = Math.floor(Math.random() * Math.min(3, viableAttacks.length));
                 viableAttacks.sort((a, b) => b.power - a.power);
-                return viableAttacks[0];
+                return selectMove(viableAttacks[randomIndex]);
             }
         }
 
-        // 8. BALANCED PLAY - Mix of offense and defense
+        // 9. BALANCED PLAY - Mix of offense and defense
         if (botEnergy >= 2 && botEnergy <= 4) {
             const options = [];
 
-            if (affordable.find(m => m.id === 'beam')) options.push(MOVES.BEAM);
-            if (affordable.find(m => m.id === 'rebound') && playerEnergy >= 2) options.push(MOVES.REBOUND);
-            if (affordable.find(m => m.id === 'fireball')) options.push(MOVES.FIREBALL);
-            options.push(MOVES.LOAD); // Always consider loading
-
-            if (playerEnergy >= 3 && affordable.find(m => m.id === 'shield')) {
+            if (affordable.find(m => m.id === 'beam') && !shouldAvoidMove(MOVES.BEAM)) options.push(MOVES.BEAM);
+            if (affordable.find(m => m.id === 'rebound') && playerEnergy >= 2 && !shouldAvoidMove(MOVES.REBOUND)) {
+                options.push(MOVES.REBOUND);
+            }
+            if (affordable.find(m => m.id === 'fireball') && !shouldAvoidMove(MOVES.FIREBALL)) {
+                options.push(MOVES.FIREBALL);
+            }
+            if (!shouldAvoidMove(MOVES.LOAD)) options.push(MOVES.LOAD);
+            if (playerEnergy >= 3 && affordable.find(m => m.id === 'shield') && !shouldAvoidMove(MOVES.SHIELD)) {
                 options.push(MOVES.SHIELD);
             }
 
-            if (options.length > 0) {
-                return options[Math.floor(Math.random() * options.length)];
+            if (options.length > 0 && Math.random() > 0.2) {
+                return selectMove(options[Math.floor(Math.random() * options.length)]);
             }
         }
 
-        // 9. RESOURCE BUILDING - Early game or low energy
+        // 10. RESOURCE BUILDING - Early game or low energy
         if (botEnergy === 0) {
             memory.consecutiveLoads++;
-            // Occasionally shield instead of load for unpredictability
-            return Math.random() > 0.25 ? MOVES.LOAD : MOVES.SHIELD;
+            // More variety in early game
+            const earlyOptions = [MOVES.LOAD, MOVES.LOAD, MOVES.SHIELD]; // 2/3 chance load
+            return selectMove(earlyOptions[Math.floor(Math.random() * earlyOptions.length)]);
         }
 
         if (botEnergy === 1) {
-            // Sometimes attack with fireball, sometimes load
-            if (affordable.find(m => m.id === 'fireball') && Math.random() > 0.5) {
-                return MOVES.FIREBALL;
-            }
-            return MOVES.LOAD;
+            // More unpredictable at 1 energy
+            const lowEnergyOptions = [];
+            if (affordable.find(m => m.id === 'fireball')) lowEnergyOptions.push(MOVES.FIREBALL);
+            lowEnergyOptions.push(MOVES.LOAD);
+            lowEnergyOptions.push(MOVES.SHIELD);
+
+            return selectMove(lowEnergyOptions[Math.floor(Math.random() * lowEnergyOptions.length)]);
         }
 
-        // 10. RANDOM HUMAN-LIKE MISTAKES (5% chance)
-        if (Math.random() < 0.05) {
+        // 11. RANDOM HUMAN-LIKE MISTAKES (8% chance for more variety)
+        if (Math.random() < 0.08) {
             const randomMove = affordable[Math.floor(Math.random() * affordable.length)];
-            if (randomMove) return randomMove;
+            if (randomMove) return selectMove(randomMove);
         }
 
-        // 11. DEFAULT - Load more energy
+        // 12. DEFAULT - Smart loading with occasional variety
         memory.consecutiveLoads++;
-        return MOVES.LOAD;
+        if (memory.consecutiveLoads > 2 && affordable.find(m => m.id === 'shield') && Math.random() > 0.5) {
+            memory.consecutiveLoads = 0;
+            return selectMove(MOVES.SHIELD);
+        }
+        return selectMove(MOVES.LOAD);
     };
 
     // --- GAMEPLAY FUNCTIONS ---
@@ -336,6 +420,13 @@ function WizBattles() {
             // We set local player name immediately, opponent name updates when round completes
             if (myRole === 'p1') setP1Name(playerName);
             else if (myRole === 'p2') setP2Name(playerName);
+
+            // Clear chat and emojis when joining new room
+            setChatMessages([]);
+            setActiveEmojis([]);
+            setShowChat(false);
+            setShowEmojiPicker(false);
+            setChatInput("");
         } else {
             alert("Enter Name and Room Code");
         }
@@ -350,6 +441,13 @@ function WizBattles() {
             setP2Name("Bot Alpha");
             setGameState('playing');
             setMessage("BATTLE START! Select a move.");
+
+            // Clear chat and emojis when starting bot mode
+            setChatMessages([]);
+            setActiveEmojis([]);
+            setShowChat(false);
+            setShowEmojiPicker(false);
+            setChatInput("");
         } else {
             alert("Enter Name");
         }
@@ -367,6 +465,13 @@ function WizBattles() {
         setMyRole(null);
         setMessage("Waiting for opponents...");
         setWinner(null);
+
+        // Clear chat and emojis
+        setChatMessages([]);
+        setActiveEmojis([]);
+        setShowChat(false);
+        setShowEmojiPicker(false);
+        setChatInput("");
     };
 
     const sendMove = (moveKey) => {
@@ -411,7 +516,8 @@ function WizBattles() {
                 message: chatInput,
                 playerName: playerName,
                 timestamp: Date.now(),
-                id: Math.random()
+                id: Math.random(),
+                isSelf: true
             }]);
 
             // Bot occasionally responds
@@ -425,11 +531,13 @@ function WizBattles() {
                         message: botResponses[Math.floor(Math.random() * botResponses.length)],
                         playerName: "Bot Alpha",
                         timestamp: Date.now(),
-                        id: Math.random()
+                        id: Math.random(),
+                        isSelf: false
                     }]);
                 }, 1000 + Math.random() * 2000);
             }
         } else {
+            // Send to server with socket ID for identification
             socket.emit("send_chat", { room, message: chatInput, playerName });
         }
 
@@ -441,7 +549,7 @@ function WizBattles() {
             const emojiData = EMOJIS.find(e => e.id === emojiId);
             if (emojiData) {
                 const id = Math.random();
-                setActiveEmojis(prev => [...prev, { ...emojiData, playerRole: myRole, id, timestamp: Date.now() }]);
+                setActiveEmojis(prev => [...prev, { ...emojiData, playerRole: myRole, id, timestamp: Date.now(), isSelf: true }]);
                 setTimeout(() => {
                     setActiveEmojis(prev => prev.filter(e => e.id !== id));
                 }, 3000);
@@ -452,13 +560,14 @@ function WizBattles() {
                 setTimeout(() => {
                     const randomEmoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
                     const botId = Math.random();
-                    setActiveEmojis(prev => [...prev, { ...randomEmoji, playerRole: 'p2', id: botId, timestamp: Date.now() }]);
+                    setActiveEmojis(prev => [...prev, { ...randomEmoji, playerRole: 'p2', id: botId, timestamp: Date.now(), isSelf: false }]);
                     setTimeout(() => {
                         setActiveEmojis(prev => prev.filter(e => e.id !== botId));
                     }, 3000);
                 }, 500 + Math.random() * 1500);
             }
         } else {
+            // Send to server - server will add senderId
             socket.emit("send_emoji", { room, emoji: emojiId, playerRole: myRole });
         }
         setShowEmojiPicker(false);
@@ -810,9 +919,9 @@ function WizBattles() {
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-3 space-y-2">
                         {chatMessages.map((msg) => (
-                            <div key={msg.id} className={`flex flex-col ${msg.playerName === playerName ? 'items-end' : 'items-start'}`}>
+                            <div key={msg.id} className={`flex flex-col ${msg.isSelf ? 'items-end' : 'items-start'}`}>
                                 <span className="text-[10px] text-slate-500 mb-1">{msg.playerName}</span>
-                                <div className={`px-3 py-2 rounded-lg max-w-[80%] break-words ${msg.playerName === playerName
+                                <div className={`px-3 py-2 rounded-lg max-w-[80%] break-words ${msg.isSelf
                                     ? 'bg-indigo-600 text-white'
                                     : 'bg-slate-800 text-slate-200'
                                     }`}>
@@ -896,7 +1005,7 @@ function WizBattles() {
             {/* --- ACTIVE EMOJIS OVERLAY --- */}
             <div className="fixed inset-0 pointer-events-none z-50">
                 {activeEmojis.map((emoji) => {
-                    const isMyEmoji = emoji.playerRole === myRole;
+                    const isMyEmoji = emoji.isSelf !== undefined ? emoji.isSelf : (emoji.playerRole === myRole);
                     const startY = isMyEmoji ? 'bottom-32' : 'top-32';
                     const startX = Math.random() > 0.5 ? 'left-1/4' : 'right-1/4';
 
@@ -927,7 +1036,7 @@ const RuleBookModal = ({ show, onClose }) => {
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[boom-flash_0.2s_ease-out]">
             <div className="bg-[#0f172a] w-full max-w-4xl max-h-[90vh] rounded-3xl border-2 border-yellow-500/50 shadow-[0_0_50px_rgba(234,179,8,0.2)] flex flex-col relative overflow-hidden">
-                
+
                 {/* Header */}
                 <div className="p-4 md:p-6 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-slate-900 to-slate-800">
                     <div className="flex items-center gap-3">
@@ -941,7 +1050,7 @@ const RuleBookModal = ({ show, onClose }) => {
 
                 {/* Content - Scrollable */}
                 <div className="overflow-y-auto p-4 md:p-6 space-y-8 custom-scrollbar">
-                    
+
                     {/* Section 1: The Basics */}
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-2">
@@ -994,7 +1103,7 @@ const RuleBookModal = ({ show, onClose }) => {
                             <AlertTriangle className="text-red-400" size={20} />
                             <h3 className="text-xl font-bold text-red-300 uppercase tracking-wider">Battle Logic</h3>
                         </div>
-                        
+
                         <div className="grid gap-3 text-sm">
                             {/* Logic Row 1 */}
                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-orange-500">
@@ -1008,7 +1117,7 @@ const RuleBookModal = ({ show, onClose }) => {
                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-blue-500">
                                 <div className="font-bold text-white w-full md:w-1/3">SHIELDING</div>
                                 <div className="text-slate-300 text-center md:text-left flex-1">
-                                    Blocks any attack with Power 2 or less (Fireball, Beam). <br/>
+                                    Blocks any attack with Power 2 or less (Fireball, Beam). <br />
                                     <span className="text-pink-400 font-bold">DESTRUCTO DISC</span>  (Power 3) or higher breaks shields!
                                 </div>
                             </div>
@@ -1017,13 +1126,13 @@ const RuleBookModal = ({ show, onClose }) => {
                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-purple-500">
                                 <div className="font-bold text-white w-full md:w-1/3">REBOUND</div>
                                 <div className="text-slate-300 text-center md:text-left flex-1">
-                                    Reflects any attack with Power 5 or less back at the user.<br/>
+                                    Reflects any attack with Power 5 or less back at the user.<br />
                                     <span className="text-amber-400 font-bold">DRAGON FIST</span> (Power 8) crushes Rebound.
                                 </div>
                             </div>
 
-                             {/* Logic Row 4 */}
-                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-red-500">
+                            {/* Logic Row 4 */}
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-red-500">
                                 <div className="font-bold text-white w-full md:w-1/3">KAYOKEN</div>
                                 <div className="text-slate-300 text-center md:text-left flex-1">
                                     The ultimate dodge. Avoids <span className="text-white font-bold underline">ANY</span> incoming attack and instantly charges +3 Energy.

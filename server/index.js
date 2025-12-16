@@ -81,12 +81,14 @@ io.on("connection", (socket) => {
 
   socket.on("send_chat", ({ room, message, playerName }) => {
     if (!rooms[room]) return;
-    io.to(room).emit("receive_chat", { message, playerName, timestamp: Date.now() });
+    // Include sender's socket ID so clients can identify their own messages
+    io.to(room).emit("receive_chat", { message, playerName, timestamp: Date.now(), senderId: socket.id });
   });
 
   socket.on("send_emoji", ({ room, emoji, playerRole }) => {
     if (!rooms[room]) return;
-    io.to(room).emit("receive_emoji", { emoji, playerRole, timestamp: Date.now() });
+    // Include sender's socket ID so clients can identify their own emojis
+    io.to(room).emit("receive_emoji", { emoji, playerRole, timestamp: Date.now(), senderId: socket.id });
   });
 
   socket.on("disconnect", () => {

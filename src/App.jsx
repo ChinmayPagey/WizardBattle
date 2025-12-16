@@ -13,13 +13,13 @@ const socket = io.connect(BACKEND_URL, { autoConnect: false });
 const MOVES = {
     LOAD: { id: 'load', name: 'Charge', cost: 0, power: 0, type: 'utility', icon: Zap, color: 'text-yellow-300', bg: 'from-yellow-600/80 to-amber-800/60', border: 'border-yellow-400/80', shadow: 'shadow-yellow-500/50', desc: 'Gain 1 Energy.' },
     SHIELD: { id: 'shield', name: 'Shield', cost: 0, power: 0, type: 'defense', icon: Shield, color: 'text-blue-300', bg: 'from-blue-600/80 to-indigo-800/60', border: 'border-blue-400/80', shadow: 'shadow-blue-500/50', desc: 'Blocks Fireball & Beam.' },
-    FIREBALL: { id: 'fireball', name: 'Fireball', cost: 1, power: 1, type: 'attack', icon: Flame, color: 'text-orange-300', bg: 'from-orange-600/80 to-red-800/60', border: 'border-orange-400/80', shadow: 'shadow-orange-500/50', desc: '1 Load. Blockable.' },
-    BEAM: { id: 'beam', name: 'Beam', cost: 2, power: 2, type: 'attack', icon: Sun, color: 'text-cyan-300', bg: 'from-cyan-600/80 to-blue-800/60', border: 'border-cyan-400/80', shadow: 'shadow-cyan-500/50', desc: '2 Loads. Blockable.' },
+    FIREBALL: { id: 'fireball', name: 'Fireball', cost: 1, power: 1, type: 'attack', icon: Flame, color: 'text-orange-300', bg: 'from-orange-600/80 to-red-800/60', border: 'border-orange-400/80', shadow: 'shadow-orange-500/50', desc: 'Fireball!!' },
+    BEAM: { id: 'beam', name: 'Beam', cost: 2, power: 2, type: 'attack', icon: Sun, color: 'text-cyan-300', bg: 'from-cyan-600/80 to-blue-800/60', border: 'border-cyan-400/80', shadow: 'shadow-cyan-500/50', desc: 'Light beam' },
     REBOUND: { id: 'rebound', name: 'Rebound', cost: 2, power: 0, type: 'counter', icon: RefreshCw, color: 'text-purple-300', bg: 'from-purple-600/80 to-fuchsia-800/60', border: 'border-purple-400/80', shadow: 'shadow-purple-500/50', desc: 'Reflects attacks.' },
     DISC: { id: 'disc', name: 'Destructo', cost: 3, power: 3, type: 'attack', icon: Disc, color: 'text-pink-300', bg: 'from-pink-600/80 to-rose-800/60', border: 'border-pink-400/80', shadow: 'shadow-pink-500/50', desc: 'Pierces Shield.' },
     KAYOKEN: { id: 'kayoken', name: 'Kayoken', cost: 0, req: 4, power: 0, type: 'special', icon: Sparkles, color: 'text-red-300', bg: 'from-red-700/90 to-orange-800/70', border: 'border-red-500/80', shadow: 'shadow-red-600/60', desc: 'Dodge + 3 Energy.' },
     SPIRIT: { id: 'spirit', name: 'Spirit Bomb', cost: 5, power: 5, type: 'attack', icon: Globe, color: 'text-sky-300', bg: 'from-sky-600/80 to-indigo-900/70', border: 'border-sky-400/80', shadow: 'shadow-sky-500/60', desc: 'Massive Damage.' },
-    DRAGON: { id: 'dragon', name: 'Dragon Fist', cost: 8, power: 8, type: 'attack', icon: Trophy, color: 'text-amber-200', bg: 'from-amber-500/90 to-yellow-800/80', border: 'border-amber-300/90', shadow: 'shadow-amber-400/70', desc: 'Wins Game.' }
+    DRAGON: { id: 'dragon', name: 'Dragon Fist', cost: 8, power: 8, type: 'attack', icon: Trophy, color: 'text-amber-200', bg: 'from-amber-500/90 to-yellow-800/80', border: 'border-amber-300/90', shadow: 'shadow-amber-400/70', desc: 'Unleash the dragon.' }
 };
 
 const INITIAL_ENERGY = 0;
@@ -956,7 +956,7 @@ const RuleBookModal = ({ show, onClose }) => {
                             </div>
                             <div className="bg-slate-800/50 p-4 rounded-xl border border-white/5">
                                 <p className="text-slate-300 text-sm leading-relaxed">
-                                    <strong className="text-white">Energy Management:</strong> Moves cost energy (loads). You must Charge to gain energy. If you try a move you can't afford, you do nothing!
+                                    <strong className="text-white">Energy Management:</strong> Moves cost energy (loads). You must Charge to gain energy. Plan your attack strategy based on the charges you have!
                                 </p>
                             </div>
                         </div>
@@ -1009,7 +1009,7 @@ const RuleBookModal = ({ show, onClose }) => {
                                 <div className="font-bold text-white w-full md:w-1/3">SHIELDING</div>
                                 <div className="text-slate-300 text-center md:text-left flex-1">
                                     Blocks any attack with Power 2 or less (Fireball, Beam). <br/>
-                                    <span className="text-pink-400 font-bold">DESTRUCTO DISC</span> (Power 3) breaks shields!
+                                    <span className="text-pink-400 font-bold">DESTRUCTO DISC</span>  (Power 3) or higher breaks shields!
                                 </div>
                             </div>
 

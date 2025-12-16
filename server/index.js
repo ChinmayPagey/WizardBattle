@@ -10,7 +10,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", 
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -18,12 +18,12 @@ const io = new Server(server, {
 let rooms = {};
 
 function findRoomBySocketId(id) {
-    for (let room in rooms) {
-      if (rooms[room].p1 === id || rooms[room].p2 === id) {
-        return room;
-      }
+  for (let room in rooms) {
+    if (rooms[room].p1 === id || rooms[room].p2 === id) {
+      return room;
     }
-    return null;
+  }
+  return null;
 }
 
 io.on("connection", (socket) => {
@@ -63,7 +63,7 @@ io.on("connection", (socket) => {
 
     // 3. Register the move
     rooms[room].moves[playerKey] = move;
-    
+
     // 4. Check if BOTH have moved
     if (rooms[room].moves.p1 && rooms[room].moves.p2) {
       // Send results
@@ -74,19 +74,29 @@ io.on("connection", (socket) => {
       // Reset moves for next round
       rooms[room].moves = {};
     } else {
-       // Only one moved: Tell that person to wait
-       socket.emit("waiting_for_opponent");
+      // Only one moved: Tell that person to wait
+      socket.emit("waiting_for_opponent");
     }
+  });
+
+  socket.on("send_chat", ({ room, message, playerName }) => {
+    if (!rooms[room]) return;
+    io.to(room).emit("receive_chat", { message, playerName, timestamp: Date.now() });
+  });
+
+  socket.on("send_emoji", ({ room, emoji, playerRole }) => {
+    if (!rooms[room]) return;
+    io.to(room).emit("receive_emoji", { emoji, playerRole, timestamp: Date.now() });
   });
 
   socket.on("disconnect", () => {
     const room = findRoomBySocketId(socket.id);
     if (room) {
-        // Deleting the room immediately on disconnect is aggressive, 
-        // but compatible with your current logic.
-        delete rooms[room]; 
-        io.to(room).emit("player_disconnected");
-        console.log(`Room ${room} closed.`);
+      // Deleting the room immediately on disconnect is aggressive, 
+      // but compatible with your current logic.
+      delete rooms[room];
+      io.to(room).emit("player_disconnected");
+      console.log(`Room ${room} closed.`);
     }
   });
 });

@@ -2,6 +2,27 @@
 
 A real-time multiplayer turn-based strategy game where wizards duel to the death! Built with React, Socket.io, and Tailwind CSS.
 
+## ✨ New Features
+
+### 💬 Real-time Chat
+- Chat with your opponent during battles
+- 200 character limit per message
+- Bot responds with contextual messages in single-player mode
+- Auto-scrolling message history
+
+### 😊 Emoji Reactions
+- Clash Royale-style emoji reactions
+- 6 quick reactions: Nice!, Love it, LOL, Grr!, GG, Wow!
+- Floating emoji animations
+- Bot reacts back randomly
+
+### 🤖 Enhanced Bot AI
+- **Strategic Decision-Making**: 11-tier priority system
+- **Pattern Recognition**: Learns from your last 10 moves
+- **Adaptive Personality**: Adjusts aggression based on game state
+- **Human-like Behavior**: Variable reaction times and occasional mistakes
+- **Smart Counters**: Uses Shield, Rebound, and Kayoken strategically
+
 ## How the Game Works
 
 WizardBattle is a psychological strategy game. You and your opponent choose moves simultaneously, and the outcome is determined by the interactions between those moves.
@@ -78,3 +99,30 @@ npm run dev
 
 ### 4. Play!
 Open the game in two different browser tabs (or use two different devices on the same network if configured) to simulate a multiplayer battle. Join the same Room Name to connect.
+
+---
+
+## Game Modes
+
+### 🤖 Practice vs Bot (Single-player)
+- Train against an intelligent AI opponent
+- Bot uses advanced strategy and adapts to your playstyle
+- Perfect for learning the game mechanics
+- Chat and emoji features work with bot responses
+
+### 🌐 Online Multiplayer
+- Battle against real players in real-time
+- Enter a room code to match with friends
+- Full chat and emoji support for social interaction
+- Synchronized turn-based gameplay
+
+---
+
+## Tips for Playing
+
+1. **Manage Your Energy**: Don't spend all your energy at once
+2. **Read Your Opponent**: Watch their patterns and adapt
+3. **Use Chat Strategically**: Mind games are part of the battle
+4. **React with Emojis**: Celebrate wins or taunt your opponent
+5. **Practice with Bot**: Master strategies before facing real players
+6. **Dragon Fist is Ultimate**: Save up 8 energy for the unstoppable finisher

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Skull, Trophy, Sparkles, Swords, User, Cpu, Play } from 'lucide-react';
+import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Skull, Trophy, Sparkles, Swords, User, Cpu, LogOut, Hash } from 'lucide-react';
 import io from 'socket.io-client';
 
 // --- CONFIGURATION ---
@@ -7,7 +7,6 @@ const BACKEND_URL = import.meta.env.PROD
   ? "https://wizbattle.onrender.com/" 
   : "http://localhost:3001";
 
-// Initialize socket only if needed, or handle connection errors gracefully
 const socket = io.connect(BACKEND_URL, { autoConnect: false });
 
 // --- ASSETS & DATA ---
@@ -100,10 +99,10 @@ function WizBattles() {
   const [wins, setWins] = useState({ p1: 0, p2: 0 });
   const [shake, setShake] = useState(false);
   
+  // Names
   const [p1Name, setP1Name] = useState("Player 1");
   const [p2Name, setP2Name] = useState("Player 2");
 
-  // Ref to hold current state for bot logic access
   const gameStateRef = useRef({ p1Energy, p2Energy });
   useEffect(() => {
     gameStateRef.current = { p1Energy, p2Energy };
@@ -112,6 +111,7 @@ function WizBattles() {
   // --- SOCKET LISTENERS ---
   useEffect(() => {
     if (isBotMode) return;
+    if (!joined) return;
 
     socket.connect();
 
@@ -132,7 +132,7 @@ function WizBattles() {
 
     socket.on("player_disconnected", () => {
         alert("Opponent Disconnected.");
-        window.location.reload();
+        leaveGame();
     });
 
     socket.on("waiting_for_opponent", () => {
@@ -152,42 +152,34 @@ function WizBattles() {
         socket.off("player_disconnected");
         socket.disconnect();
     }
-  }, [isBotMode]);
+  }, [isBotMode, joined]);
 
   // --- BOT LOGIC ---
   const getSmartBotMove = (botEnergy, playerEnergy) => {
     const moves = Object.values(MOVES);
-    // Filter what bot can afford
     const affordable = moves.filter(m => (m.req ? botEnergy >= m.req : botEnergy >= m.cost));
     
-    // 1. INSTANT WIN: If can Dragon Fist, DO IT.
+    // 1. INSTANT WIN
     if (botEnergy >= 8) return MOVES.DRAGON;
 
-    // 2. SURVIVAL: If Player has > 5 energy (Spirit Bomb threat)
-    if (playerEnergy >= 5) {
-        // High chance to block or counter
-        if (Math.random() > 0.2) {
-            if (affordable.find(m => m.id === 'rebound')) return MOVES.REBOUND;
-            if (affordable.find(m => m.id === 'shield')) return MOVES.SHIELD;
-            if (affordable.find(m => m.id === 'kayoken')) return MOVES.KAYOKEN;
-        }
+    // 2. SURVIVAL
+    if (playerEnergy >= 5 && Math.random() > 0.2) {
+        if (affordable.find(m => m.id === 'rebound')) return MOVES.REBOUND;
+        if (affordable.find(m => m.id === 'shield')) return MOVES.SHIELD;
+        if (affordable.find(m => m.id === 'kayoken')) return MOVES.KAYOKEN;
     }
 
-    // 3. AGGRESSION: If Player is low (0 energy), punish them
-    if (playerEnergy === 0 && botEnergy >= 3) {
-       if (affordable.find(m => m.id === 'disc')) return MOVES.DISC; // Pierces shields
+    // 3. PUNISH
+    if (playerEnergy === 0 && botEnergy >= 3 && affordable.find(m => m.id === 'disc')) {
+       return MOVES.DISC; 
     }
 
-    // 4. RESOURCE BUILDING: Low energy
-    if (botEnergy === 0) {
-        // 80% Charge, 20% Shield (to be annoying)
-        return Math.random() > 0.2 ? MOVES.LOAD : MOVES.SHIELD;
-    }
+    // 4. RESOURCE BUILDING
+    if (botEnergy === 0) return Math.random() > 0.2 ? MOVES.LOAD : MOVES.SHIELD;
 
-    // 5. STANDARD PLAY: Mix of attacking and charging
+    // 5. STANDARD PLAY
     const attacks = affordable.filter(m => m.type === 'attack');
     if (attacks.length > 0 && Math.random() > 0.4) {
-        // Pick random attack
         return attacks[Math.floor(Math.random() * attacks.length)];
     }
 
@@ -199,10 +191,11 @@ function WizBattles() {
   const joinRoom = () => {
     if (room !== "" && playerName !== "") {
       setIsBotMode(false);
-      socket.emit("join_room", room);
-      if (myRole === 'p1') setP1Name(playerName);
-      if (myRole === 'p2') setP2Name(playerName);
       setJoined(true);
+      socket.emit("join_room", room);
+      // We set local player name immediately, opponent name updates when round completes
+      if (myRole === 'p1') setP1Name(playerName);
+      else if (myRole === 'p2') setP2Name(playerName);
     } else {
         alert("Enter Name and Room Code");
     }
@@ -222,16 +215,31 @@ function WizBattles() {
       }
   }
 
+  const leaveGame = () => {
+      if (!isBotMode) {
+          socket.disconnect();
+      }
+      setJoined(false);
+      setGameState('menu');
+      setWins({ p1: 0, p2: 0 });
+      setP1Energy(INITIAL_ENERGY);
+      setP2Energy(INITIAL_ENERGY);
+      setMyRole(null);
+      setMessage("Waiting for opponents...");
+      setWinner(null);
+  };
+
   const sendMove = (moveKey) => {
     if (gameState !== 'playing') return;
     const move = MOVES[moveKey];
-    const playerMoveData = { ...move, playerName: p1Name };
+    
+    // FIX: Send specific 'playerName' so opponent sees it correctly
+    const playerMoveData = { ...move, playerName: playerName };
 
     if (isBotMode) {
         setGameState('waiting');
         setMessage("Opponent is thinking...");
         
-        // Simulate bot delay
         setTimeout(() => {
             const botMove = getSmartBotMove(gameStateRef.current.p2Energy, gameStateRef.current.p1Energy);
             const botMoveData = { ...botMove, playerName: "Bot Alpha" };
@@ -248,8 +256,7 @@ function WizBattles() {
     const move1 = MOVES[move1Data.id.toUpperCase()];
     const move2 = MOVES[move2Data.id.toUpperCase()];
     
-    // Determine names based on who sent what (for online consistency)
-    // For bot mode, move1 is always player (p1), move2 is bot (p2)
+    // Sync names from move data to ensure they appear correctly
     const name1 = isBotMode ? p1Name : (move1Data.playerName || "Player 1");
     const name2 = isBotMode ? p2Name : (move2Data.playerName || "Player 2");
     
@@ -264,7 +271,6 @@ function WizBattles() {
     setGameState('resolution');
     setMessage("Resolving..."); 
 
-    // Trigger shake on impact
     if (move1.type === 'attack' || move2.type === 'attack') {
           setTimeout(() => { setShake(true); }, 800);
           setTimeout(() => { setShake(false); }, 1300);
@@ -275,7 +281,6 @@ function WizBattles() {
     }, 1500); 
   };
 
-  // --- FLAVOR TEXT & LOGIC ---
   const getBattleFlavorText = (m1, m2, n1, n2, winner) => {
     const bothAtk = m1.type === 'attack' && m2.type === 'attack';
     const m1Atk = m1.type === 'attack';
@@ -315,7 +320,6 @@ function WizBattles() {
     let p2Net = 0;
     let roundWinner = null;
 
-    // --- 1. COST CALCULATION ---
     if (move1.id === 'load') p1Net += 1;
     else if (move1.id === 'kayoken') p1Net += 3;
     else p1Net -= move1.cost;
@@ -324,45 +328,25 @@ function WizBattles() {
     else if (move2.id === 'kayoken') p2Net += 3;
     else p2Net -= move2.cost;
 
-    // --- 2. COMBAT LOGIC ---
     const p1Atk = move1.type === 'attack';
     const p2Atk = move2.type === 'attack';
 
+    // Combat Logic
     if (p1Atk && p2Atk) {
-        // ATTACK VS ATTACK
-        if (move1.power === move2.power) {
-            // CLASH! No one dies. Game continues.
-            roundWinner = 'clash';
-        } 
-        else if (move1.power > move2.power) { 
-            p2Death = true; 
-            roundWinner = 'p1'; 
-        } 
-        else { 
-            p1Death = true; 
-            roundWinner = 'p2'; 
-        }
-    } 
-    else if (p1Atk) {
-        // P1 ATTACKS, P2 DEFENDS/UTILITY
-        if (move2.id === 'kayoken') { /* Miss - Kayoken dodges everything */ }
+        if (move1.power === move2.power) { /* Clash */ roundWinner = 'clash'; }
+        else if (move1.power > move2.power) { p2Death = true; roundWinner = 'p1'; }
+        else { p1Death = true; roundWinner = 'p2'; }
+    } else if (p1Atk) {
+        if (move2.id === 'kayoken') { /* Miss */ }
         else if (move2.id === 'rebound') { 
-            // Rebound kills P1, UNLESS it's Dragon Fist (Unstoppable)
             if (move1.id === 'dragon') { p2Death = true; roundWinner = 'p1'; }
             else { p1Death = true; roundWinner = 'p2'; }
         }
         else if (move2.id === 'shield') { 
-            // Shield blocks small attacks, breaks on big ones (>2 power)
             if (move1.power > 2) { p2Death = true; roundWinner = 'p1'; }
         }
-        else { 
-            // P2 was Charging or using a non-defensive move -> P2 Dies
-            p2Death = true; 
-            roundWinner = 'p1'; 
-        }
-    } 
-    else if (p2Atk) {
-        // P2 ATTACKS, P1 DEFENDS/UTILITY
+        else { p2Death = true; roundWinner = 'p1'; }
+    } else if (p2Atk) {
         if (move1.id === 'kayoken') { /* Miss */ }
         else if (move1.id === 'rebound') {
             if (move2.id === 'dragon') { p1Death = true; roundWinner = 'p2'; }
@@ -371,35 +355,32 @@ function WizBattles() {
         else if (move1.id === 'shield') {
             if (move2.power > 2) { p1Death = true; roundWinner = 'p2'; }
         }
-        else { 
-            p1Death = true; 
-            roundWinner = 'p2'; 
-        }
+        else { p1Death = true; roundWinner = 'p2'; }
     }
 
-    // --- 3. STATE UPDATES ---
     const msg = getBattleFlavorText(move1, move2, name1, name2, roundWinner);
 
     setP1Energy(prev => Math.max(0, prev + p1Net));
     setP2Energy(prev => Math.max(0, prev + p2Net));
     
-    // --- 4. GAME OVER CHECK ---
-    // Since Clashes are handled, only ONE person can die at a time now.
     if (p1Death || p2Death) {
-        setGameState('gameover');
-        
+        // Immediate visual update for the kill
         if (p1Death) { 
             setWinner('p2'); 
             setWins(w => ({...w, p2: w.p2+1})); 
-            setMessage(`${name2} WINS!`);
-        }
-        else { 
+            setMessage(`${name2} WINS!`); 
+        } else { 
             setWinner('p1'); 
             setWins(w => ({...w, p1: w.p1+1})); 
-            setMessage(`${name1} WINS!`);
+            setMessage(`${name1} WINS!`); 
         }
+        
+        // Delay before showing the "Rematch" screen so user sees the victory state
+        setTimeout(() => {
+            setGameState('gameover');
+        }, 2500);
+        
     } else {
-        // Game continues (Clash, Dodge, Block, or Double Charge)
         setMessage(msg);
         setTimeout(() => {
             setGameState('playing');
@@ -464,7 +445,6 @@ function WizBattles() {
                         <input placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-indigo-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
                     </div>
                     
-                    {/* Bot Mode Button */}
                      <button onClick={startBotMode} className="group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-indigo-400 transition-all">
                         <Cpu size={18} className="text-emerald-400 group-hover:scale-110 transition-transform" />
                         <span className="font-bold text-slate-200 uppercase tracking-wider text-sm">Practice vs Bot</span>
@@ -510,7 +490,7 @@ function WizBattles() {
              <span className="font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-orange-400 hidden sm:block">WIZ BATTLES</span>
         </div>
 
-        {/* CENTER: VS HEADER WITH INTEGRATED SCORES */}
+        {/* CENTER: VS HEADER */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-4 bg-black/40 px-6 py-2 rounded-full border border-white/5 backdrop-blur-md">
              <div className="flex items-center gap-2">
                  <span className="text-blue-400 font-black text-sm md:text-base drop-shadow-md truncate max-w-[100px] text-right">{p1Name}</span>
@@ -525,8 +505,25 @@ function WizBattles() {
              </div>
         </div>
 
-        {/* Right: Empty for balance or Settings icon later */}
-        <div className="w-[100px]"></div>
+        {/* Right: Room Code & Exit Button */}
+        <div className="flex items-center justify-end gap-3">
+            {!isBotMode && (
+                <div className="hidden md:flex flex-col items-end mr-2">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Room Code</span>
+                    <span className="text-xl font-black text-indigo-400 leading-none tracking-wider flex items-center gap-1">
+                        <Hash size={14} className="opacity-50" /> {room}
+                    </span>
+                </div>
+            )}
+            <button 
+                onClick={leaveGame}
+                className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/60 transition-all"
+                title="Return to Menu"
+            >
+                <LogOut size={16} className="text-red-400 group-hover:text-red-300" />
+                <span className="text-xs font-bold text-red-400 group-hover:text-red-300 hidden md:block uppercase">Exit</span>
+            </button>
+        </div>
       </div>
 
       {/* --- BATTLE ARENA --- */}
@@ -575,7 +572,14 @@ function WizBattles() {
 // --- SUB-COMPONENTS ---
 
 const BattleAnimations = ({ gameState, p1Move, p2Move, myRole }) => {
-    if (gameState !== 'resolution' && gameState !== 'gameover') return null;
+    // Show animation if we are resolving OR if the game just ended (during the delay)
+    if (gameState !== 'resolution' && gameState !== 'gameover' && gameState !== 'playing') return null;
+    
+    // Only show if we actually have moves to show
+    if (!p1Move || !p2Move) return null;
+    
+    // If we are back in 'playing' state (after reset), don't show old animations
+    if (gameState === 'playing') return null;
 
     const selfMove = myRole === 'p1' ? p1Move : p2Move;
     const enemyMove = myRole === 'p1' ? p2Move : p1Move;

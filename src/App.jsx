@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Skull, Trophy, Sparkles, Swords, User, Globe as GlobeIcon, Sword } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Skull, Trophy, Sparkles, Swords, User, Cpu, Play } from 'lucide-react';
 import io from 'socket.io-client';
 
 // --- CONFIGURATION ---
@@ -7,7 +7,8 @@ const BACKEND_URL = import.meta.env.PROD
   ? "https://wizbattle.onrender.com/" 
   : "http://localhost:3001";
 
-const socket = io.connect(BACKEND_URL);
+// Initialize socket only if needed, or handle connection errors gracefully
+const socket = io.connect(BACKEND_URL, { autoConnect: false });
 
 // --- ASSETS & DATA ---
 const MOVES = {
@@ -86,6 +87,7 @@ function WizBattles() {
   const [room, setRoom] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [joined, setJoined] = useState(false);
+  const [isBotMode, setIsBotMode] = useState(false);
   
   const [myRole, setMyRole] = useState(null); 
   const [gameState, setGameState] = useState('menu'); 
@@ -101,7 +103,18 @@ function WizBattles() {
   const [p1Name, setP1Name] = useState("Player 1");
   const [p2Name, setP2Name] = useState("Player 2");
 
+  // Ref to hold current state for bot logic access
+  const gameStateRef = useRef({ p1Energy, p2Energy });
   useEffect(() => {
+    gameStateRef.current = { p1Energy, p2Energy };
+  }, [p1Energy, p2Energy]);
+
+  // --- SOCKET LISTENERS ---
+  useEffect(() => {
+    if (isBotMode) return;
+
+    socket.connect();
+
     socket.on("player_assignment", (role) => {
         setMyRole(role);
         if (role === 'p1') setMessage("Waiting for a challenger...");
@@ -128,28 +141,7 @@ function WizBattles() {
     });
 
     socket.on("round_complete", (data) => {
-        const move1 = MOVES[data.p1Move.id.toUpperCase()];
-        const move2 = MOVES[data.p2Move.id.toUpperCase()];
-        const name1 = data.p1Move.playerName || "Player 1";
-        const name2 = data.p2Move.playerName || "Player 2";
-        
-        setP1Name(name1);
-        setP2Name(name2);
-        setP1Move(move1);
-        setP2Move(move2);
-        
-        setGameState('resolution');
-        setMessage("Resolving..."); 
-
-        // Trigger shake on impact
-        if (move1.type === 'attack' || move2.type === 'attack') {
-             setTimeout(() => { setShake(true); }, 800);
-             setTimeout(() => { setShake(false); }, 1300);
-        }
-        
-        setTimeout(() => {
-            resolveTurn(move1, move2, name1, name2);
-        }, 1500); 
+        handleRoundResolution(data.p1Move, data.p2Move);
     });
 
     return () => {
@@ -158,11 +150,55 @@ function WizBattles() {
         socket.off("round_complete");
         socket.off("waiting_for_opponent");
         socket.off("player_disconnected");
+        socket.disconnect();
     }
-  }, []);
+  }, [isBotMode]);
+
+  // --- BOT LOGIC ---
+  const getSmartBotMove = (botEnergy, playerEnergy) => {
+    const moves = Object.values(MOVES);
+    // Filter what bot can afford
+    const affordable = moves.filter(m => (m.req ? botEnergy >= m.req : botEnergy >= m.cost));
+    
+    // 1. INSTANT WIN: If can Dragon Fist, DO IT.
+    if (botEnergy >= 8) return MOVES.DRAGON;
+
+    // 2. SURVIVAL: If Player has > 5 energy (Spirit Bomb threat)
+    if (playerEnergy >= 5) {
+        // High chance to block or counter
+        if (Math.random() > 0.2) {
+            if (affordable.find(m => m.id === 'rebound')) return MOVES.REBOUND;
+            if (affordable.find(m => m.id === 'shield')) return MOVES.SHIELD;
+            if (affordable.find(m => m.id === 'kayoken')) return MOVES.KAYOKEN;
+        }
+    }
+
+    // 3. AGGRESSION: If Player is low (0 energy), punish them
+    if (playerEnergy === 0 && botEnergy >= 3) {
+       if (affordable.find(m => m.id === 'disc')) return MOVES.DISC; // Pierces shields
+    }
+
+    // 4. RESOURCE BUILDING: Low energy
+    if (botEnergy === 0) {
+        // 80% Charge, 20% Shield (to be annoying)
+        return Math.random() > 0.2 ? MOVES.LOAD : MOVES.SHIELD;
+    }
+
+    // 5. STANDARD PLAY: Mix of attacking and charging
+    const attacks = affordable.filter(m => m.type === 'attack');
+    if (attacks.length > 0 && Math.random() > 0.4) {
+        // Pick random attack
+        return attacks[Math.floor(Math.random() * attacks.length)];
+    }
+
+    return MOVES.LOAD;
+  };
+
+  // --- GAMEPLAY FUNCTIONS ---
 
   const joinRoom = () => {
     if (room !== "" && playerName !== "") {
+      setIsBotMode(false);
       socket.emit("join_room", room);
       if (myRole === 'p1') setP1Name(playerName);
       if (myRole === 'p2') setP2Name(playerName);
@@ -172,33 +208,88 @@ function WizBattles() {
     }
   };
 
+  const startBotMode = () => {
+      if (playerName !== "") {
+          setIsBotMode(true);
+          setJoined(true);
+          setMyRole('p1');
+          setP1Name(playerName);
+          setP2Name("Bot Alpha");
+          setGameState('playing');
+          setMessage("BATTLE START! Select a move.");
+      } else {
+          alert("Enter Name");
+      }
+  }
+
   const sendMove = (moveKey) => {
     if (gameState !== 'playing') return;
     const move = MOVES[moveKey];
-    socket.emit("send_move", { room, move: { ...move, playerName }, player: myRole });
-    setMessage("Waiting for opponent...");
+    const playerMoveData = { ...move, playerName: p1Name };
+
+    if (isBotMode) {
+        setGameState('waiting');
+        setMessage("Opponent is thinking...");
+        
+        // Simulate bot delay
+        setTimeout(() => {
+            const botMove = getSmartBotMove(gameStateRef.current.p2Energy, gameStateRef.current.p1Energy);
+            const botMoveData = { ...botMove, playerName: "Bot Alpha" };
+            handleRoundResolution(playerMoveData, botMoveData);
+        }, 1000 + Math.random() * 1000);
+
+    } else {
+        socket.emit("send_move", { room, move: playerMoveData, player: myRole });
+        setMessage("Waiting for opponent...");
+    }
   };
 
-  // --- NEW FLAVOR TEXT LOGIC ---
+  const handleRoundResolution = (move1Data, move2Data) => {
+    const move1 = MOVES[move1Data.id.toUpperCase()];
+    const move2 = MOVES[move2Data.id.toUpperCase()];
+    
+    // Determine names based on who sent what (for online consistency)
+    // For bot mode, move1 is always player (p1), move2 is bot (p2)
+    const name1 = isBotMode ? p1Name : (move1Data.playerName || "Player 1");
+    const name2 = isBotMode ? p2Name : (move2Data.playerName || "Player 2");
+    
+    if (!isBotMode) {
+        setP1Name(name1);
+        setP2Name(name2);
+    }
+
+    setP1Move(move1);
+    setP2Move(move2);
+    
+    setGameState('resolution');
+    setMessage("Resolving..."); 
+
+    // Trigger shake on impact
+    if (move1.type === 'attack' || move2.type === 'attack') {
+          setTimeout(() => { setShake(true); }, 800);
+          setTimeout(() => { setShake(false); }, 1300);
+    }
+    
+    setTimeout(() => {
+        resolveTurn(move1, move2, name1, name2);
+    }, 1500); 
+  };
+
+  // --- FLAVOR TEXT & LOGIC ---
   const getBattleFlavorText = (m1, m2, n1, n2, winner) => {
     const bothAtk = m1.type === 'attack' && m2.type === 'attack';
     const m1Atk = m1.type === 'attack';
     const m2Atk = m2.type === 'attack';
 
-    // 1. Clash
     if (bothAtk && m1.power === m2.power) {
         if (m1.id === 'dragon') return "EARTH SHATTERING! Two Dragon Fists collide!";
         if (m1.id === 'beam') return "BEAM STRUGGLE! They cancel out perfectly!";
         return `CLASH! ${m1.name} meets ${m2.name} in mid-air!`;
     }
-
-    // 2. Overpower
     if (bothAtk) {
         if (winner === 'p1') return `${n1}'s ${m1.name} tore through ${n2}'s ${m2.name}!`;
         return `${n2}'s ${m2.name} tore through ${n1}'s ${m1.name}!`;
     }
-
-    // 3. Attack vs Defense/Utility
     if (m1Atk) {
         if (m2.id === 'kayoken') return `${n2} vanished! The ${m1.name} hit nothing!`;
         if (m2.id === 'rebound') return m1.id === 'dragon' ? `Dragon Fist CRUSHED the Rebound!` : `Ouch! ${n2} deflected the ${m1.name} back!`;
@@ -206,7 +297,6 @@ function WizBattles() {
         if (m2.id === 'load') return `Direct hit! ${n2} was caught charging!`;
         return `${n1} blasted ${n2} with ${m1.name}!`;
     }
-    
     if (m2Atk) {
         if (m1.id === 'kayoken') return `${n1} vanished! The ${m2.name} hit nothing!`;
         if (m1.id === 'rebound') return m2.id === 'dragon' ? `Dragon Fist CRUSHED the Rebound!` : `Ouch! ${n1} deflected the ${m2.name} back!`;
@@ -214,12 +304,7 @@ function WizBattles() {
         if (m1.id === 'load') return `Direct hit! ${n1} was caught charging!`;
         return `${n2} blasted ${n1} with ${m2.name}!`;
     }
-
-    // 4. Passives
     if (m1.id === 'load' && m2.id === 'load') return "The air hums as both wizards power up.";
-    if (m1.id === 'shield' && m2.id === 'shield') return "A cautious standoff. No damage dealt.";
-    if (m1.id === 'kayoken' && m2.id === 'kayoken') return "Blurring speeds! Both dodged nothing.";
-    
     return "Tactical maneuvering... no clear hit.";
   };
 
@@ -230,7 +315,7 @@ function WizBattles() {
     let p2Net = 0;
     let roundWinner = null;
 
-    // Costs
+    // --- 1. COST CALCULATION ---
     if (move1.id === 'load') p1Net += 1;
     else if (move1.id === 'kayoken') p1Net += 3;
     else p1Net -= move1.cost;
@@ -239,25 +324,45 @@ function WizBattles() {
     else if (move2.id === 'kayoken') p2Net += 3;
     else p2Net -= move2.cost;
 
-    // Combat Logic
+    // --- 2. COMBAT LOGIC ---
     const p1Atk = move1.type === 'attack';
     const p2Atk = move2.type === 'attack';
 
-    // Logic determination
     if (p1Atk && p2Atk) {
-        if (move1.power > move2.power) { p2Death = true; roundWinner = 'p1'; }
-        else if (move2.power > move1.power) { p1Death = true; roundWinner = 'p2'; }
-    } else if (p1Atk) {
-        if (move2.id === 'kayoken') { /* Miss */ }
+        // ATTACK VS ATTACK
+        if (move1.power === move2.power) {
+            // CLASH! No one dies. Game continues.
+            roundWinner = 'clash';
+        } 
+        else if (move1.power > move2.power) { 
+            p2Death = true; 
+            roundWinner = 'p1'; 
+        } 
+        else { 
+            p1Death = true; 
+            roundWinner = 'p2'; 
+        }
+    } 
+    else if (p1Atk) {
+        // P1 ATTACKS, P2 DEFENDS/UTILITY
+        if (move2.id === 'kayoken') { /* Miss - Kayoken dodges everything */ }
         else if (move2.id === 'rebound') { 
+            // Rebound kills P1, UNLESS it's Dragon Fist (Unstoppable)
             if (move1.id === 'dragon') { p2Death = true; roundWinner = 'p1'; }
             else { p1Death = true; roundWinner = 'p2'; }
         }
         else if (move2.id === 'shield') { 
+            // Shield blocks small attacks, breaks on big ones (>2 power)
             if (move1.power > 2) { p2Death = true; roundWinner = 'p1'; }
         }
-        else { p2Death = true; roundWinner = 'p1'; }
-    } else if (p2Atk) {
+        else { 
+            // P2 was Charging or using a non-defensive move -> P2 Dies
+            p2Death = true; 
+            roundWinner = 'p1'; 
+        }
+    } 
+    else if (p2Atk) {
+        // P2 ATTACKS, P1 DEFENDS/UTILITY
         if (move1.id === 'kayoken') { /* Miss */ }
         else if (move1.id === 'rebound') {
             if (move2.id === 'dragon') { p1Death = true; roundWinner = 'p2'; }
@@ -266,27 +371,42 @@ function WizBattles() {
         else if (move1.id === 'shield') {
             if (move2.power > 2) { p1Death = true; roundWinner = 'p2'; }
         }
-        else { p1Death = true; roundWinner = 'p2'; }
+        else { 
+            p1Death = true; 
+            roundWinner = 'p2'; 
+        }
     }
 
+    // --- 3. STATE UPDATES ---
     const msg = getBattleFlavorText(move1, move2, name1, name2, roundWinner);
 
     setP1Energy(prev => Math.max(0, prev + p1Net));
     setP2Energy(prev => Math.max(0, prev + p2Net));
-    setMessage(msg);
-
+    
+    // --- 4. GAME OVER CHECK ---
+    // Since Clashes are handled, only ONE person can die at a time now.
     if (p1Death || p2Death) {
         setGameState('gameover');
-        if (p1Death && p2Death) setWinner('draw');
-        else if (p1Death) { setWinner('p2'); setWins(w => ({...w, p2: w.p2+1})); }
-        else { setWinner('p1'); setWins(w => ({...w, p1: w.p1+1})); }
+        
+        if (p1Death) { 
+            setWinner('p2'); 
+            setWins(w => ({...w, p2: w.p2+1})); 
+            setMessage(`${name2} WINS!`);
+        }
+        else { 
+            setWinner('p1'); 
+            setWins(w => ({...w, p1: w.p1+1})); 
+            setMessage(`${name1} WINS!`);
+        }
     } else {
+        // Game continues (Clash, Dodge, Block, or Double Charge)
+        setMessage(msg);
         setTimeout(() => {
             setGameState('playing');
             setP1Move(null);
             setP2Move(null);
             setMessage("Select your next move!");
-        }, 3500);
+        }, 3000);
     }
   };
 
@@ -343,6 +463,19 @@ function WizBattles() {
                         <label className="text-xs text-indigo-300 font-black uppercase ml-1">Wizard Name</label>
                         <input placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-indigo-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
                     </div>
+                    
+                    {/* Bot Mode Button */}
+                     <button onClick={startBotMode} className="group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-indigo-400 transition-all">
+                        <Cpu size={18} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold text-slate-200 uppercase tracking-wider text-sm">Practice vs Bot</span>
+                    </button>
+
+                    <div className="flex items-center gap-4">
+                        <div className="h-px bg-slate-700 flex-1"></div>
+                        <span className="text-xs text-slate-500 font-bold uppercase">OR ONLINE</span>
+                        <div className="h-px bg-slate-700 flex-1"></div>
+                    </div>
+
                     <div className="flex flex-col gap-2">
                         <label className="text-xs text-indigo-300 font-black uppercase ml-1">Arena Code</label>
                         <input placeholder="e.g. battle1" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-indigo-500 transition-colors" onChange={(e) => setRoom(e.target.value)} />
@@ -354,7 +487,7 @@ function WizBattles() {
     );
   }
 
-  const myName = playerName;
+  const myName = myRole === 'p1' ? p1Name : p2Name;
   const oppName = myRole === 'p1' ? p2Name : p1Name;
 
   return (
@@ -377,24 +510,23 @@ function WizBattles() {
              <span className="font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-orange-400 hidden sm:block">WIZ BATTLES</span>
         </div>
 
-        {/* CENTER: VS HEADER (Absolute Center) */}
+        {/* CENTER: VS HEADER WITH INTEGRATED SCORES */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-4 bg-black/40 px-6 py-2 rounded-full border border-white/5 backdrop-blur-md">
-             <span className="text-blue-400 font-black text-sm md:text-base drop-shadow-md truncate max-w-[100px]">{p1Name}</span>
-             <span className="text-white/80 font-black text-xl italic mx-1 animate-pulse">VS</span>
-             <span className="text-red-400 font-black text-sm md:text-base drop-shadow-md truncate max-w-[100px]">{p2Name}</span>
+             <div className="flex items-center gap-2">
+                 <span className="text-blue-400 font-black text-sm md:text-base drop-shadow-md truncate max-w-[100px] text-right">{p1Name}</span>
+                 <span className="text-slate-400 font-bold">({wins.p1})</span>
+             </div>
+             
+             <span className="text-white/80 font-black text-xl italic mx-2 animate-pulse text-yellow-500">VS</span>
+             
+             <div className="flex items-center gap-2">
+                 <span className="text-slate-400 font-bold">({wins.p2})</span>
+                 <span className="text-red-400 font-black text-sm md:text-base drop-shadow-md truncate max-w-[100px]">{p2Name}</span>
+             </div>
         </div>
 
-        {/* Right: Scores */}
-        <div className="flex gap-4 text-xs font-bold uppercase tracking-wider">
-            <div className="flex flex-col items-end">
-                <span className="text-slate-500 text-[9px]">Score</span>
-                <div className="flex gap-1 items-center">
-                    <span className="text-blue-400 text-lg">{wins.p1}</span>
-                    <span className="text-slate-700">-</span>
-                    <span className="text-red-400 text-lg">{wins.p2}</span>
-                </div>
-            </div>
-        </div>
+        {/* Right: Empty for balance or Settings icon later */}
+        <div className="w-[100px]"></div>
       </div>
 
       {/* --- BATTLE ARENA --- */}
@@ -407,8 +539,11 @@ function WizBattles() {
 
           {/* NARRATIVE BAR (Center) */}
           <div className="w-full flex justify-center my-2 relative z-20 h-16 items-center">
-             <div className="px-6 py-3 bg-gradient-to-r from-slate-900/90 to-indigo-950/90 backdrop-blur-md border border-indigo-500/30 rounded-full shadow-2xl text-center min-w-[300px] max-w-[95%]">
-                <span className="text-sm md:text-lg font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-100 via-white to-yellow-100">
+             <div className={`px-6 py-3 backdrop-blur-md border rounded-full shadow-2xl text-center min-w-[300px] max-w-[95%] transition-colors duration-500
+                ${gameState === 'gameover' ? 'bg-gradient-to-r from-yellow-900/90 to-amber-950/90 border-yellow-500/50' : 'bg-gradient-to-r from-slate-900/90 to-indigo-950/90 border-indigo-500/30'}
+             `}>
+                <span className={`text-sm md:text-lg font-black italic text-transparent bg-clip-text 
+                    ${gameState === 'gameover' ? 'bg-gradient-to-r from-yellow-100 via-yellow-300 to-yellow-100 animate-pulse' : 'bg-gradient-to-r from-yellow-100 via-white to-yellow-100'}`}>
                     {message}
                 </span>
              </div>
@@ -419,27 +554,20 @@ function WizBattles() {
       </div>
 
       {/* --- CONTROLS --- */}
-      <div className="w-full shrink-0 bg-[#0a0f20]/90 backdrop-blur-lg p-4 pb-8 rounded-t-[2rem] border-t border-indigo-500/20 relative z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-            <div className="max-w-5xl mx-auto grid grid-cols-3 sm:grid-cols-4 md:grid-cols-9 gap-2 relative z-10">
-                {Object.keys(MOVES).map(key => renderCard(key))}
-            </div>
+      <div className="w-full shrink-0 bg-[#0a0f20]/90 backdrop-blur-lg p-4 pb-8 rounded-t-[2rem] border-t border-indigo-500/20 relative z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transition-all duration-300">
+            {gameState === 'gameover' ? (
+                 <div className="flex justify-center items-center py-4">
+                     <button onClick={restartGame} className="flex items-center gap-3 px-10 py-4 bg-white text-black rounded-full font-black text-xl hover:scale-105 hover:bg-yellow-300 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+                        <RefreshCw size={24} className={shake ? "animate-spin" : ""} />
+                        REMATCH
+                     </button>
+                 </div>
+            ) : (
+                <div className="max-w-5xl mx-auto grid grid-cols-3 sm:grid-cols-4 md:grid-cols-9 gap-2 relative z-10">
+                    {Object.keys(MOVES).map(key => renderCard(key))}
+                </div>
+            )}
       </div>
-
-      {/* --- GAME OVER OVERLAY (ABSOLUTE CENTER) --- */}
-      {gameState === 'gameover' && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm animate-[boom-flash_0.3s_ease-out]">
-            <div className="scale-150 flex flex-col items-center gap-6 p-10 bg-gradient-to-b from-indigo-900/50 to-black/80 rounded-3xl border-2 border-yellow-500/50 shadow-[0_0_100px_rgba(234,179,8,0.3)]">
-                 <Trophy size={64} className="text-yellow-400 animate-bounce" />
-                 <h2 className="text-6xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-yellow-200 to-orange-500 drop-shadow-xl">
-                    {winner === 'draw' ? 'DRAW' : (winner === myRole ? 'VICTORY' : 'DEFEAT')}
-                 </h2>
-                 <p className="text-blue-200 font-bold uppercase tracking-widest">{winner === myRole ? "You dominated the arena!" : "Better luck next time..."}</p>
-                 <button onClick={restartGame} className="mt-4 px-10 py-4 bg-white text-black rounded-full font-black text-xl hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.5)]">
-                    PLAY AGAIN
-                 </button>
-            </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -447,7 +575,7 @@ function WizBattles() {
 // --- SUB-COMPONENTS ---
 
 const BattleAnimations = ({ gameState, p1Move, p2Move, myRole }) => {
-    if (gameState !== 'resolution') return null;
+    if (gameState !== 'resolution' && gameState !== 'gameover') return null;
 
     const selfMove = myRole === 'p1' ? p1Move : p2Move;
     const enemyMove = myRole === 'p1' ? p2Move : p1Move;
@@ -478,8 +606,8 @@ const BattleAnimations = ({ gameState, p1Move, p2Move, myRole }) => {
 };
 
 const PlayerDisplay = ({ name, role, energy, move, isWinner, gameState, isSelf }) => {
-    const isShielding = gameState === 'resolution' && move?.id === 'shield';
-    const isLoading = gameState === 'resolution' && move?.id === 'load';
+    const isShielding = (gameState === 'resolution' || gameState === 'gameover') && move?.id === 'shield';
+    const isLoading = (gameState === 'resolution' || gameState === 'gameover') && move?.id === 'load';
 
     return (
         <div className={`flex flex-col items-center relative w-full shrink-0 z-10 transition-all duration-500 ${isWinner ? 'scale-110' : ''}`}>
@@ -498,7 +626,7 @@ const PlayerDisplay = ({ name, role, energy, move, isWinner, gameState, isSelf }
 
             {/* Avatar */}
             <div className={`relative w-24 h-24 rounded-full border-4 flex items-center justify-center transition-all duration-500 shadow-2xl bg-[#050a18]
-                ${gameState === 'resolution' && move?.type === 'attack' ? 'scale-110 border-white' : 'border-slate-700'}
+                ${(gameState === 'resolution' || gameState === 'gameover') && move?.type === 'attack' ? 'scale-110 border-white' : 'border-slate-700'}
                 ${isWinner ? 'border-yellow-400 shadow-[0_0_40px_rgba(250,204,21,0.6)]' : ''}
             `}>
                  {isShielding && <div className="absolute inset-[-10px] rounded-full border-2 border-blue-400 bg-blue-500/20 animate-pulse" />}

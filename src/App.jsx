@@ -33,7 +33,7 @@ const EMOJIS = [
     { id: 'sparkle', icon: Sparkles, label: 'Wow!', color: 'text-purple-400', bg: 'from-purple-500/80 to-fuchsia-700/60' }
 ];
 
-// --- UPDATED ANIMATION STYLES (Floating Emojis) ---
+// --- STYLES ---
 const styles = `
   @keyframes float-up {
     0% { transform: translateY(0px) scale(0.5); opacity: 0; }
@@ -532,7 +532,7 @@ function WizBattles() {
     const oppName = myRole === 'p1' ? p2Name : p1Name;
 
     return (
-        // USE 100dvh for mobile
+        // USE 100dvh for mobile to prevent address bar scrolling
         <div className="h-[100dvh] w-full bg-[#030712] text-white font-sans flex flex-col items-center overflow-hidden relative overscroll-none touch-none">
             <style>{styles}</style>
             <RuleBookModal show={showRules} onClose={() => setShowRules(false)} />
@@ -546,43 +546,46 @@ function WizBattles() {
             </div>
 
             {/* --- TOP BAR (FIXED FOR MOBILE LAYOUT) --- */}
-            {/* Using Grid on Mobile to prevent overlaps */}
-            <div className="w-full shrink-0 h-16 relative z-20 grid grid-cols-3 items-center px-4 bg-black/20 backdrop-blur-sm border-b border-white/5">
+            {/* Uses Flexbox (not Grid, not Absolute) to guarantee NO overlapping */}
+            <div className="w-full shrink-0 h-14 md:h-16 relative z-20 flex justify-between items-center px-3 md:px-4 bg-black/20 backdrop-blur-sm border-b border-white/5">
                 
-                {/* 1. Left: Title & Rules (Align Start) */}
-                <div className="flex items-center justify-start gap-2">
-                    <div className="bg-yellow-500/10 border border-yellow-500/30 p-1.5 rounded-lg"><Sparkles size={16} className="text-yellow-400" /></div>
+                {/* 1. Left: Title & Rules */}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 p-1.5 rounded-lg shrink-0">
+                        <Sparkles size={16} className="text-yellow-400" />
+                    </div>
                     <span className="font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-orange-400 hidden md:block">WIZ BATTLES</span>
-                    <button onClick={() => setShowRules(true)} className="md:hidden bg-slate-800 p-1.5 rounded-md border border-slate-700 text-slate-300">
+                    <button onClick={() => setShowRules(true)} className="md:hidden bg-slate-800 p-1.5 rounded-md border border-slate-700 text-slate-300 shrink-0">
                         <Book size={14} />
                     </button>
                 </div>
 
-                {/* 2. Center: VS Header (Align Center) */}
-                <div className="flex items-center justify-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5 backdrop-blur-md whitespace-nowrap">
-                    <div className="flex items-center gap-1 md:gap-2">
-                        <span className="text-blue-400 font-black text-xs md:text-base drop-shadow-md truncate max-w-[50px] md:max-w-[100px] text-right">{p1Name}</span>
-                        <span className="text-slate-400 font-bold text-xs md:text-sm">({wins.p1})</span>
+                {/* 2. Center: VS Header */}
+                {/* Constrained width to prevent it from pushing left/right elements out */}
+                <div className="flex items-center justify-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5 backdrop-blur-md mx-1 shrink-0 max-w-[55%] md:max-w-none">
+                    <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-blue-400 font-black text-xs md:text-base drop-shadow-md truncate">{p1Name}</span>
+                        <span className="text-slate-400 font-bold text-xs md:text-sm shrink-0">({wins.p1})</span>
                     </div>
-                    <span className="text-white/80 font-black text-sm md:text-xl italic mx-1 animate-pulse text-yellow-500">VS</span>
-                    <div className="flex items-center gap-1 md:gap-2">
-                        <span className="text-slate-400 font-bold text-xs md:text-sm">({wins.p2})</span>
-                        <span className="text-red-400 font-black text-xs md:text-base drop-shadow-md truncate max-w-[50px] md:max-w-[100px]">{p2Name}</span>
+                    <span className="text-white/80 font-black text-xs md:text-xl italic animate-pulse text-yellow-500 shrink-0">VS</span>
+                    <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-slate-400 font-bold text-xs md:text-sm shrink-0">({wins.p2})</span>
+                        <span className="text-red-400 font-black text-xs md:text-base drop-shadow-md truncate">{p2Name}</span>
                     </div>
                 </div>
 
-                {/* 3. Right: Room & Exit (Align End) */}
-                <div className="flex items-center justify-end gap-2">
+                {/* 3. Right: Room & Exit */}
+                <div className="flex items-center justify-end gap-2 flex-1 min-w-0">
                     {!isBotMode && (
-                        <div className="flex flex-col items-end mr-1 md:mr-2">
-                            <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest hidden sm:block">Room</span>
-                            <span className="text-xs md:text-xl font-black text-indigo-400 leading-none tracking-wider flex items-center gap-1">
+                        <div className="flex flex-col items-end mr-1 hidden sm:flex">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Room</span>
+                            <span className="text-sm font-black text-indigo-400 flex items-center gap-1">
                                 <Hash size={12} className="opacity-50" /> {room}
                             </span>
                         </div>
                     )}
-                    <button onClick={leaveGame} className="group flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all">
-                        <LogOut size={14} className="text-red-400 group-hover:text-red-300 md:w-4 md:h-4" />
+                    <button onClick={leaveGame} className="group flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all shrink-0">
+                        <LogOut size={14} className="text-red-400 md:w-4 md:h-4" />
                         <span className="text-xs font-bold text-red-400 hidden md:block uppercase">Exit</span>
                     </button>
                 </div>

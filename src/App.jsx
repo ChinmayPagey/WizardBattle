@@ -154,7 +154,7 @@ function WizBattles() {
 
         socket.on("player_assignment", (role) => {
             setMyRole(role);
-            if (role === 'p1') setMessage("Waiting for a challenger...");
+            if (role === 'p1') setMessage(`Waiting for Challenger... Room: ${room}`);
         });
 
         socket.on("game_start", () => {
@@ -209,26 +209,40 @@ function WizBattles() {
             socket.off("receive_emoji");
             socket.disconnect();
         }
-    }, [isBotMode, joined]);
+    }, [isBotMode, joined, room]);
 
     // --- BOT LOGIC ---
     const botMemory = useRef({ playerMoves: [], consecutiveLoads: 0, aggressiveness: 0.5 });
     const getSmartBotMove = (botEnergy, playerEnergy) => {
-         const moves = Object.values(MOVES);
-         const affordable = moves.filter(m => (m.req ? botEnergy >= m.req : botEnergy >= m.cost));
-         // Simplified strategy for brevity
-         if (botEnergy >= 8) return MOVES.DRAGON;
-         if (botEnergy === 0) return Math.random() > 0.3 ? MOVES.LOAD : MOVES.SHIELD;
-         return affordable[Math.floor(Math.random() * affordable.length)] || MOVES.LOAD;
+        const moves = Object.values(MOVES);
+        const affordable = moves.filter(m => (m.req ? botEnergy >= m.req : botEnergy >= m.cost));
+        // Simplified strategy for brevity
+        if (botEnergy >= 8) return MOVES.DRAGON;
+        if (botEnergy === 0) return Math.random() > 0.3 ? MOVES.LOAD : MOVES.SHIELD;
+        return affordable[Math.floor(Math.random() * affordable.length)] || MOVES.LOAD;
     };
 
     // --- GAMEPLAY FUNCTIONS ---
 
-    const joinRoom = () => {
-        if (room !== "" && playerName !== "") {
+    const [showJoinInput, setShowJoinInput] = useState(false);
+
+    const generateRoomCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    };
+
+    const joinRoom = (roomCode) => {
+        const codeToJoin = typeof roomCode === 'string' ? roomCode : room;
+
+        if (codeToJoin !== "" && playerName !== "") {
             setIsBotMode(false);
             setJoined(true);
-            socket.emit("join_room", room);
+            setRoom(codeToJoin);
+            socket.emit("join_room", codeToJoin);
             if (myRole === 'p1') setP1Name(playerName);
             else if (myRole === 'p2') setP2Name(playerName);
 
@@ -240,6 +254,15 @@ function WizBattles() {
             setChatInput("");
         } else {
             alert("Enter Name and Room Code");
+        }
+    };
+
+    const createRoom = () => {
+        if (playerName !== "") {
+            const newCode = generateRoomCode();
+            joinRoom(newCode);
+        } else {
+            alert("Enter Name");
         }
     };
 
@@ -313,7 +336,7 @@ function WizBattles() {
 
         if (isBotMode) {
             setChatMessages(prev => [...prev, { message: chatInput, playerName: playerName, timestamp: Date.now(), id: Math.random(), isSelf: true }]);
-             if (Math.random() > 0.7) {
+            if (Math.random() > 0.7) {
                 setTimeout(() => {
                     setChatMessages(prev => [...prev, { message: "Nice move!", playerName: "Bot Alpha", timestamp: Date.now(), id: Math.random(), isSelf: false }]);
                 }, 1500);
@@ -332,7 +355,7 @@ function WizBattles() {
                 setActiveEmojis(prev => [...prev, { ...emojiData, playerRole: myRole, id, timestamp: Date.now(), isSelf: true }]);
                 setTimeout(() => { setActiveEmojis(prev => prev.filter(e => e.id !== id)); }, 2000);
             }
-             if (Math.random() > 0.6) {
+            if (Math.random() > 0.6) {
                 setTimeout(() => {
                     const randomEmoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
                     const botId = Math.random();
@@ -412,14 +435,14 @@ function WizBattles() {
             else if (move1.power > move2.power) { p2Death = true; roundWinner = 'p1'; }
             else { p1Death = true; roundWinner = 'p2'; }
         } else if (p1Atk) {
-            if (move2.id === 'kayoken') {} 
+            if (move2.id === 'kayoken') { }
             else if (move2.id === 'rebound') {
                 if (move1.id === 'dragon') { p2Death = true; roundWinner = 'p1'; } else { p1Death = true; roundWinner = 'p2'; }
             } else if (move2.id === 'shield') {
                 if (move1.power > 2) { p2Death = true; roundWinner = 'p1'; }
             } else { p2Death = true; roundWinner = 'p1'; }
         } else if (p2Atk) {
-            if (move1.id === 'kayoken') {} 
+            if (move1.id === 'kayoken') { }
             else if (move1.id === 'rebound') {
                 if (move2.id === 'dragon') { p1Death = true; roundWinner = 'p2'; } else { p2Death = true; roundWinner = 'p1'; }
             } else if (move1.id === 'shield') {
@@ -499,8 +522,8 @@ function WizBattles() {
                     {/* ... (Login Form remains mostly the same) ... */}
                     <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-2xl border-2 border-indigo-500/50 shadow-2xl flex flex-col gap-6 w-[320px] md:w-[350px]">
                         <div className="flex flex-col gap-2">
-                             <label className="text-xs text-indigo-300 font-black uppercase ml-1">Wizard Name</label>
-                             <input placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-indigo-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
+                            <label className="text-xs text-indigo-300 font-black uppercase ml-1">Wizard Name</label>
+                            <input placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-indigo-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
                         </div>
                         <div className="flex gap-2">
                             <button onClick={startBotMode} className="flex-1 group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-indigo-400 transition-all">
@@ -517,11 +540,32 @@ function WizBattles() {
                             <span className="text-xs text-slate-500 font-bold uppercase">OR ONLINE</span>
                             <div className="h-px bg-slate-700 flex-1"></div>
                         </div>
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs text-indigo-300 font-black uppercase ml-1">Arena Code</label>
-                            <input placeholder="e.g. battle1" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-indigo-500 transition-colors" onChange={(e) => setRoom(e.target.value)} />
-                        </div>
-                        <button onClick={joinRoom} className="mt-2 bg-gradient-to-r from-indigo-600 to-purple-600 py-3 rounded-xl font-black text-lg text-white uppercase tracking-widest hover:scale-[1.02] shadow-lg">Enter The Void</button>
+
+                        {!showJoinInput ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={createRoom} className="bg-gradient-to-r from-indigo-600 to-purple-600 py-4 rounded-xl font-black text-sm text-white uppercase tracking-wider hover:scale-[1.02] shadow-lg flex flex-col items-center gap-1">
+                                    <Zap size={20} className="text-yellow-300" />
+                                    Create Room
+                                </button>
+                                <button onClick={() => setShowJoinInput(true)} className="bg-slate-800 border-2 border-slate-700 hover:border-indigo-500 py-4 rounded-xl font-black text-sm text-slate-300 hover:text-white uppercase tracking-wider hover:scale-[1.02] transition-all flex flex-col items-center gap-1">
+                                    <Hash size={20} className="text-indigo-400" />
+                                    Join Room
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-xs text-indigo-300 font-black uppercase ml-1">Enter Room Code</label>
+                                        <button onClick={() => setShowJoinInput(false)} className="text-[10px] text-slate-500 hover:text-white uppercase font-bold underline">Cancel</button>
+                                    </div>
+                                    <input autoFocus placeholder="e.g. X8J9L2" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold text-center tracking-widest focus:border-indigo-500 transition-colors uppercase text-lg" onChange={(e) => setRoom(e.target.value.toUpperCase())} />
+                                </div>
+                                <button onClick={() => joinRoom()} className="bg-gradient-to-r from-indigo-600 to-purple-600 py-3 rounded-xl font-black text-lg text-white uppercase tracking-widest hover:scale-[1.02] shadow-lg">
+                                    Join Battle
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -548,7 +592,7 @@ function WizBattles() {
             {/* --- TOP BAR (FIXED FOR MOBILE LAYOUT) --- */}
             {/* Uses Flexbox (not Grid, not Absolute) to guarantee NO overlapping */}
             <div className="w-full shrink-0 h-14 md:h-16 relative z-20 flex justify-between items-center px-3 md:px-4 bg-black/20 backdrop-blur-sm border-b border-white/5">
-                
+
                 {/* 1. Left: Title & Rules */}
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="bg-yellow-500/10 border border-yellow-500/30 p-1.5 rounded-lg shrink-0">
@@ -577,9 +621,9 @@ function WizBattles() {
                 {/* 3. Right: Room & Exit */}
                 <div className="flex items-center justify-end gap-2 flex-1 min-w-0">
                     {!isBotMode && (
-                        <div className="flex flex-col items-end mr-1 hidden sm:flex">
+                        <div className="flex flex-col items-end mr-1 flex">
                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Room</span>
-                            <span className="text-sm font-black text-indigo-400 flex items-center gap-1">
+                            <span className="text-sm font-black text-indigo-400 flex items-center gap-1 select-all cursor-pointer" onClick={() => { navigator.clipboard.writeText(room); alert("Room ID Copied!") }}>
                                 <Hash size={12} className="opacity-50" /> {room}
                             </span>
                         </div>
@@ -706,10 +750,10 @@ function WizBattles() {
                     const isMyEmoji = emoji.isSelf !== undefined ? emoji.isSelf : (emoji.playerRole === myRole);
                     // Position emojis specifically near the avatars
                     // Self: Bottom Right | Opponent: Top Left
-                    const initialClass = isMyEmoji 
-                        ? 'bottom-28 right-[15%] animate-[float-up_2s_ease-out_forwards]' 
+                    const initialClass = isMyEmoji
+                        ? 'bottom-28 right-[15%] animate-[float-up_2s_ease-out_forwards]'
                         : 'top-28 left-[15%] animate-[float-down_2s_ease-out_forwards]';
-                    
+
                     return (
                         <div
                             key={emoji.id}
@@ -733,7 +777,7 @@ const RuleBookModal = ({ show, onClose }) => {
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[boom-flash_0.2s_ease-out]">
             <div className="bg-[#0f172a] w-full max-w-4xl max-h-[85vh] rounded-3xl border-2 border-yellow-500/50 shadow-[0_0_50px_rgba(234,179,8,0.2)] flex flex-col relative overflow-hidden">
-                
+
                 {/* Header */}
                 <div className="p-4 md:p-6 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-slate-900 to-slate-800">
                     <div className="flex items-center gap-3">
@@ -747,7 +791,7 @@ const RuleBookModal = ({ show, onClose }) => {
 
                 {/* Content - Scrollable */}
                 <div className="overflow-y-auto p-4 md:p-6 space-y-8 custom-scrollbar">
-                    
+
                     {/* Section 1: The Basics */}
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-2">
@@ -800,7 +844,7 @@ const RuleBookModal = ({ show, onClose }) => {
                             <AlertTriangle className="text-red-400" size={20} />
                             <h3 className="text-lg md:text-xl font-bold text-red-300 uppercase tracking-wider">Battle Logic</h3>
                         </div>
-                        
+
                         <div className="grid gap-3 text-xs md:text-sm">
                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-orange-500">
                                 <div className="font-bold text-white w-full md:w-1/3">ATTACK vs ATTACK</div>
@@ -812,7 +856,7 @@ const RuleBookModal = ({ show, onClose }) => {
                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-blue-500">
                                 <div className="font-bold text-white w-full md:w-1/3">SHIELDING</div>
                                 <div className="text-slate-300 flex-1">
-                                    Blocks any attack with Power 2 or less (Fireball, Beam). <br/>
+                                    Blocks any attack with Power 2 or less (Fireball, Beam). <br />
                                     <span className="text-pink-400 font-bold">DESTRUCTO DISC</span>  (Power 3) or higher breaks shields!
                                 </div>
                             </div>
@@ -820,12 +864,12 @@ const RuleBookModal = ({ show, onClose }) => {
                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-purple-500">
                                 <div className="font-bold text-white w-full md:w-1/3">REBOUND</div>
                                 <div className="text-slate-300 flex-1">
-                                    Reflects any attack with Power 5 or less back at the user.<br/>
+                                    Reflects any attack with Power 5 or less back at the user.<br />
                                     <span className="text-amber-400 font-bold">DRAGON FIST</span> (Power 8) crushes Rebound.
                                 </div>
                             </div>
 
-                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-red-500">
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-red-500">
                                 <div className="font-bold text-white w-full md:w-1/3">KAYOKEN</div>
                                 <div className="text-slate-300 flex-1">
                                     The ultimate dodge. Avoids <span className="text-white font-bold underline">ANY</span> incoming attack and instantly charges +3 Energy.

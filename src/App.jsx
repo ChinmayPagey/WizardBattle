@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Skull, Trophy, Sparkles, Swords, User, Cpu, LogOut, Hash, MessageCircle, Send, Smile, ThumbsUp, Heart, Angry, Laugh, X } from 'lucide-react';
+import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Skull, Trophy, Sparkles, Swords, User, Cpu, LogOut, Hash, MessageCircle, Send, Smile, ThumbsUp, Heart, Angry, Laugh, X, Book, Info, AlertTriangle } from 'lucide-react';
 import io from 'socket.io-client';
 
 // --- CONFIGURATION ---
@@ -96,6 +96,7 @@ function WizBattles() {
     const [playerName, setPlayerName] = useState("");
     const [joined, setJoined] = useState(false);
     const [isBotMode, setIsBotMode] = useState(false);
+    const [showRules, setShowRules] = useState(false); // NEW STATE FOR RULEBOOK
 
     const [myRole, setMyRole] = useState(null);
     const [gameState, setGameState] = useState('menu');
@@ -644,6 +645,9 @@ function WizBattles() {
     if (!joined) {
         return (
             <div className="h-screen w-full bg-[#050a18] flex flex-col items-center justify-center text-white relative overflow-hidden font-sans">
+                {/* --- ADDED RULEBOOK MODAL COMPONENT --- */}
+                <RuleBookModal show={showRules} onClose={() => setShowRules(false)} />
+
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,_var(--tw-gradient-stops))] from-purple-900/40 via-[#050a18] to-black z-0"></div>
                 <div className="z-10 flex flex-col items-center gap-8 scale-110">
                     <div className="text-center">
@@ -656,10 +660,17 @@ function WizBattles() {
                             <input placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-indigo-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
                         </div>
 
-                        <button onClick={startBotMode} className="group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-indigo-400 transition-all">
-                            <Cpu size={18} className="text-emerald-400 group-hover:scale-110 transition-transform" />
-                            <span className="font-bold text-slate-200 uppercase tracking-wider text-sm">Practice vs Bot</span>
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={startBotMode} className="flex-1 group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-indigo-400 transition-all">
+                                <Cpu size={18} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                                <span className="font-bold text-slate-200 uppercase tracking-wider text-xs md:text-sm">Practice</span>
+                            </button>
+                            {/* --- ADDED RULEBOOK BUTTON --- */}
+                            <button onClick={() => setShowRules(true)} className="group flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 rounded-xl border border-slate-600 hover:border-yellow-400 transition-all">
+                                <Book size={18} className="text-yellow-400 group-hover:scale-110 transition-transform" />
+                                <span className="font-bold text-slate-200 uppercase tracking-wider text-xs md:text-sm">Rules</span>
+                            </button>
+                        </div>
 
                         <div className="flex items-center gap-4">
                             <div className="h-px bg-slate-700 flex-1"></div>
@@ -684,6 +695,8 @@ function WizBattles() {
     return (
         <div className="h-screen max-h-screen w-full bg-[#030712] text-white font-sans flex flex-col items-center overflow-hidden relative">
             <style>{styles}</style>
+            {/* Rulebook accessible in-game too just in case */}
+            <RuleBookModal show={showRules} onClose={() => setShowRules(false)} />
 
             {/* BACKGROUND */}
             <div className="absolute inset-0 z-0">
@@ -693,45 +706,48 @@ function WizBattles() {
                 </div>
             </div>
 
-            {/* --- TOP BAR --- */}
-            <div className="w-full shrink-0 h-16 relative z-20 flex justify-between items-center px-4">
-                {/* Left: Title */}
-                <div className="flex items-center gap-2">
+            {/* --- TOP BAR (FIXED FOR MOBILE) --- */}
+            <div className="w-full shrink-0 h-16 relative z-20 flex justify-between items-center px-4 bg-black/20 backdrop-blur-sm border-b border-white/5">
+                {/* Left: Title & Rules */}
+                <div className="flex items-center gap-2 md:gap-4">
                     <div className="bg-yellow-500/10 border border-yellow-500/30 p-1.5 rounded-lg"><Sparkles size={16} className="text-yellow-400" /></div>
                     <span className="font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-orange-400 hidden sm:block">WIZ BATTLES</span>
+                    <button onClick={() => setShowRules(true)} className="sm:hidden bg-slate-800 p-1.5 rounded-md border border-slate-700 text-slate-300">
+                        <Book size={14} />
+                    </button>
                 </div>
 
                 {/* CENTER: VS HEADER */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-4 bg-black/40 px-6 py-2 rounded-full border border-white/5 backdrop-blur-md">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 md:gap-4 bg-black/40 px-3 md:px-6 py-1.5 md:py-2 rounded-full border border-white/5 backdrop-blur-md">
                     <div className="flex items-center gap-2">
-                        <span className="text-blue-400 font-black text-sm md:text-base drop-shadow-md truncate max-w-[100px] text-right">{p1Name}</span>
-                        <span className="text-slate-400 font-bold">({wins.p1})</span>
+                        <span className="text-blue-400 font-black text-xs md:text-base drop-shadow-md truncate max-w-[60px] md:max-w-[100px] text-right">{p1Name}</span>
+                        <span className="text-slate-400 font-bold text-xs md:text-sm">({wins.p1})</span>
                     </div>
 
-                    <span className="text-white/80 font-black text-xl italic mx-2 animate-pulse text-yellow-500">VS</span>
+                    <span className="text-white/80 font-black text-lg md:text-xl italic mx-1 animate-pulse text-yellow-500">VS</span>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-slate-400 font-bold">({wins.p2})</span>
-                        <span className="text-red-400 font-black text-sm md:text-base drop-shadow-md truncate max-w-[100px]">{p2Name}</span>
+                        <span className="text-slate-400 font-bold text-xs md:text-sm">({wins.p2})</span>
+                        <span className="text-red-400 font-black text-xs md:text-base drop-shadow-md truncate max-w-[60px] md:max-w-[100px]">{p2Name}</span>
                     </div>
                 </div>
 
-                {/* Right: Room Code & Exit Button */}
-                <div className="flex items-center justify-end gap-3">
+                {/* Right: Room Code & Exit Button (FIXED SCALING) */}
+                <div className="flex items-center justify-end gap-2 md:gap-3">
                     {!isBotMode && (
-                        <div className="hidden md:flex flex-col items-end mr-2">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Room Code</span>
-                            <span className="text-xl font-black text-indigo-400 leading-none tracking-wider flex items-center gap-1">
-                                <Hash size={14} className="opacity-50" /> {room}
+                        <div className="flex flex-col items-end mr-1 md:mr-2">
+                            <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest hidden sm:block">Room Code</span>
+                            <span className="text-sm md:text-xl font-black text-indigo-400 leading-none tracking-wider flex items-center gap-1">
+                                <Hash size={12} className="opacity-50 md:w-3.5 md:h-3.5" /> {room}
                             </span>
                         </div>
                     )}
                     <button
                         onClick={leaveGame}
-                        className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/60 transition-all"
+                        className="group flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/60 transition-all"
                         title="Return to Menu"
                     >
-                        <LogOut size={16} className="text-red-400 group-hover:text-red-300" />
+                        <LogOut size={14} className="text-red-400 group-hover:text-red-300 md:w-4 md:h-4" />
                         <span className="text-xs font-bold text-red-400 group-hover:text-red-300 hidden md:block uppercase">Exit</span>
                     </button>
                 </div>
@@ -903,6 +919,130 @@ function WizBattles() {
         </div>
     );
 }
+
+// --- NEW COMPONENT: RULEBOOK ---
+const RuleBookModal = ({ show, onClose }) => {
+    if (!show) return null;
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[boom-flash_0.2s_ease-out]">
+            <div className="bg-[#0f172a] w-full max-w-4xl max-h-[90vh] rounded-3xl border-2 border-yellow-500/50 shadow-[0_0_50px_rgba(234,179,8,0.2)] flex flex-col relative overflow-hidden">
+                
+                {/* Header */}
+                <div className="p-4 md:p-6 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-slate-900 to-slate-800">
+                    <div className="flex items-center gap-3">
+                        <Book className="text-yellow-400" size={28} />
+                        <h2 className="text-2xl md:text-3xl font-black italic text-white tracking-wide">WIZARD'S GUIDE</h2>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <X size={24} className="text-slate-400 hover:text-white" />
+                    </button>
+                </div>
+
+                {/* Content - Scrollable */}
+                <div className="overflow-y-auto p-4 md:p-6 space-y-8 custom-scrollbar">
+                    
+                    {/* Section 1: The Basics */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Info className="text-blue-400" size={20} />
+                            <h3 className="text-xl font-bold text-blue-300 uppercase tracking-wider">How To Play</h3>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                                <p className="text-slate-300 text-sm leading-relaxed">
+                                    <strong className="text-white">Simultaneous Turns:</strong> Both players choose a move at the same time. You cannot see what your opponent picks until the turn resolves.
+                                </p>
+                            </div>
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                                <p className="text-slate-300 text-sm leading-relaxed">
+                                    <strong className="text-white">Energy Management:</strong> Moves cost energy (loads). You must Charge to gain energy. If you try a move you can't afford, you do nothing!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section 2: Move List (Grid) */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <Zap className="text-yellow-400" size={20} />
+                            <h3 className="text-xl font-bold text-yellow-300 uppercase tracking-wider">The Spellbook</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            {Object.values(MOVES).map((move) => (
+                                <div key={move.id} className="flex items-center gap-3 bg-slate-900/80 p-3 rounded-lg border border-white/5 relative overflow-hidden group hover:border-white/20 transition-all">
+                                    <div className={`p-2 rounded-full bg-black/40 ${move.color} border border-white/10 shrink-0`}>
+                                        <move.icon size={18} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-0.5">
+                                            <span className={`font-bold text-sm uppercase ${move.color}`}>{move.name}</span>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${move.cost === 0 && !move.req ? 'bg-slate-700 text-slate-300' : 'bg-blue-900 text-blue-200'}`}>
+                                                {move.req ? `REQ: ${move.req}` : `COST: ${move.cost}`}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-400 leading-tight">{move.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Section 3: Interactions (Logic) */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <AlertTriangle className="text-red-400" size={20} />
+                            <h3 className="text-xl font-bold text-red-300 uppercase tracking-wider">Battle Logic</h3>
+                        </div>
+                        
+                        <div className="grid gap-3 text-sm">
+                            {/* Logic Row 1 */}
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-orange-500">
+                                <div className="font-bold text-white w-full md:w-1/3">ATTACK vs ATTACK</div>
+                                <div className="text-slate-300 text-center md:text-left flex-1">
+                                    Higher power wins. If equal, they <span className="text-orange-400 font-bold">CLASH</span> and cancel out.
+                                </div>
+                            </div>
+
+                            {/* Logic Row 2 */}
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-blue-500">
+                                <div className="font-bold text-white w-full md:w-1/3">SHIELDING</div>
+                                <div className="text-slate-300 text-center md:text-left flex-1">
+                                    Blocks any attack with Power 2 or less (Fireball, Beam). <br/>
+                                    <span className="text-pink-400 font-bold">DESTRUCTO DISC</span> (Power 3) breaks shields!
+                                </div>
+                            </div>
+
+                            {/* Logic Row 3 */}
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-purple-500">
+                                <div className="font-bold text-white w-full md:w-1/3">REBOUND</div>
+                                <div className="text-slate-300 text-center md:text-left flex-1">
+                                    Reflects any attack with Power 5 or less back at the user.<br/>
+                                    <span className="text-amber-400 font-bold">DRAGON FIST</span> (Power 8) crushes Rebound.
+                                </div>
+                            </div>
+
+                             {/* Logic Row 4 */}
+                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border-l-4 border-red-500">
+                                <div className="font-bold text-white w-full md:w-1/3">KAYOKEN</div>
+                                <div className="text-slate-300 text-center md:text-left flex-1">
+                                    The ultimate dodge. Avoids <span className="text-white font-bold underline">ANY</span> incoming attack and instantly charges +3 Energy.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 border-t border-white/10 bg-slate-900 flex justify-center">
+                    <button onClick={onClose} className="px-8 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-widest rounded-lg transition-colors">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // --- SUB-COMPONENTS ---
 

@@ -523,7 +523,7 @@ function WizBattles() {
                     <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-2xl border-2 border-cyan-500/50 shadow-2xl flex flex-col gap-6 w-[320px] md:w-[350px]">
                         <div className="flex flex-col gap-2">
                             <label className="text-xs text-cyan-300 font-black uppercase ml-1">Wizard Name</label>
-                            <input placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-cyan-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
+                            <input type="text" name="wizard_username_game_field" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-cyan-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
                         </div>
                         <div className="flex gap-2">
                             <button onClick={startBotMode} className="flex-1 group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-cyan-400 transition-all">
@@ -559,7 +559,7 @@ function WizBattles() {
                                         <label className="text-xs text-cyan-300 font-black uppercase ml-1">Enter Room Code</label>
                                         <button onClick={() => setShowJoinInput(false)} className="text-[10px] text-slate-500 hover:text-white uppercase font-bold underline">Cancel</button>
                                     </div>
-                                    <input autoFocus placeholder="e.g. X8J9L2" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold text-center tracking-widest focus:border-cyan-500 transition-colors uppercase text-lg" onChange={(e) => setRoom(e.target.value.toUpperCase())} />
+                                    <input type="text" name="room_code_field" autoComplete="off" autoCorrect="off" autoCapitalize="characters" spellCheck="false" autoFocus placeholder="e.g. X8J9L2" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold text-center tracking-widest focus:border-cyan-500 transition-colors uppercase text-lg" onChange={(e) => setRoom(e.target.value.toUpperCase())} />
                                 </div>
                                 <button onClick={() => joinRoom()} className="bg-gradient-to-r from-cyan-600 to-blue-600 py-3 rounded-xl font-black text-lg text-white uppercase tracking-widest hover:scale-[1.02] shadow-lg">
                                     Join Battle

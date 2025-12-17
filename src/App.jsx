@@ -15,7 +15,7 @@ const MOVES = {
     SHIELD: { id: 'shield', name: 'Shield', cost: 0, power: 0, type: 'defense', icon: Shield, color: 'text-blue-300', bg: 'from-blue-600/80 to-indigo-800/60', border: 'border-blue-400/80', shadow: 'shadow-blue-500/50', desc: 'Blocks Fireball & Beam.' },
     FIREBALL: { id: 'fireball', name: 'Fireball', cost: 1, power: 1, type: 'attack', icon: Flame, color: 'text-orange-300', bg: 'from-orange-600/80 to-red-800/60', border: 'border-orange-400/80', shadow: 'shadow-orange-500/50', desc: 'Fireball!!' },
     BEAM: { id: 'beam', name: 'Beam', cost: 2, power: 2, type: 'attack', icon: Sun, color: 'text-cyan-300', bg: 'from-cyan-600/80 to-blue-800/60', border: 'border-cyan-400/80', shadow: 'shadow-cyan-500/50', desc: 'Light beam' },
-    REBOUND: { id: 'rebound', name: 'Rebound', cost: 2, power: 0, type: 'counter', icon: RefreshCw, color: 'text-purple-300', bg: 'from-purple-600/80 to-fuchsia-800/60', border: 'border-purple-400/80', shadow: 'shadow-purple-500/50', desc: 'Reflects attacks.' },
+    REBOUND: { id: 'rebound', name: 'Rebound', cost: 2, power: 0, type: 'counter', icon: RefreshCw, color: 'text-emerald-300', bg: 'from-emerald-600/80 to-teal-800/60', border: 'border-emerald-400/80', shadow: 'shadow-emerald-500/50', desc: 'Reflects attacks.' },
     DISC: { id: 'disc', name: 'Destructo', cost: 3, power: 3, type: 'attack', icon: Disc, color: 'text-pink-300', bg: 'from-pink-600/80 to-rose-800/60', border: 'border-pink-400/80', shadow: 'shadow-pink-500/50', desc: 'Pierces Shield.' },
     KAYOKEN: { id: 'kayoken', name: 'Kayoken', cost: 0, req: 4, power: 0, type: 'special', icon: Sparkles, color: 'text-red-300', bg: 'from-red-700/90 to-orange-800/70', border: 'border-red-500/80', shadow: 'shadow-red-600/60', desc: 'Dodge + 3 Energy.' },
     SPIRIT: { id: 'spirit', name: 'Spirit Bomb', cost: 5, power: 5, type: 'attack', icon: Globe, color: 'text-sky-300', bg: 'from-sky-600/80 to-indigo-900/70', border: 'border-sky-400/80', shadow: 'shadow-sky-500/60', desc: 'Massive Damage.' },
@@ -30,7 +30,7 @@ const EMOJIS = [
     { id: 'laugh', icon: Laugh, label: 'LOL', color: 'text-yellow-400', bg: 'from-yellow-500/80 to-amber-700/60' },
     { id: 'angry', icon: Angry, label: 'Grr!', color: 'text-red-400', bg: 'from-red-500/80 to-red-700/60' },
     { id: 'smile', icon: Smile, label: 'GG', color: 'text-green-400', bg: 'from-green-500/80 to-emerald-700/60' },
-    { id: 'sparkle', icon: Sparkles, label: 'Wow!', color: 'text-purple-400', bg: 'from-purple-500/80 to-fuchsia-700/60' }
+    { id: 'sparkle', icon: Sparkles, label: 'Wow!', color: 'text-amber-400', bg: 'from-amber-500/80 to-yellow-700/60' }
 ];
 
 // --- STYLES ---
@@ -513,20 +513,20 @@ function WizBattles() {
         return (
             <div className="h-[100dvh] w-full bg-[#050a18] flex flex-col items-center justify-center text-white relative overflow-hidden font-sans">
                 <RuleBookModal show={showRules} onClose={() => setShowRules(false)} />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,_var(--tw-gradient-stops))] from-purple-900/40 via-[#050a18] to-black z-0"></div>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,_var(--tw-gradient-stops))] from-cyan-900/40 via-[#050a18] to-black z-0"></div>
                 <div className="z-10 flex flex-col items-center gap-8 scale-100 sm:scale-110">
                     <div className="text-center">
-                        <h1 className="text-4xl md:text-6xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-500 to-red-600 drop-shadow-lg tracking-tighter">WIZ BATTLES</h1>
-                        <p className="text-blue-300 font-bold tracking-[0.4em] mt-2 text-xs md:text-sm uppercase">Arcane Arena</p>
+                        <h1 className="text-4xl md:text-6xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-500 to-indigo-600 drop-shadow-lg tracking-tighter">WIZ BATTLES</h1>
+                        <p className="text-cyan-300 font-bold tracking-[0.4em] mt-2 text-xs md:text-sm uppercase">Arcane Arena</p>
                     </div>
                     {/* ... (Login Form remains mostly the same) ... */}
-                    <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-2xl border-2 border-indigo-500/50 shadow-2xl flex flex-col gap-6 w-[320px] md:w-[350px]">
+                    <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-2xl border-2 border-cyan-500/50 shadow-2xl flex flex-col gap-6 w-[320px] md:w-[350px]">
                         <div className="flex flex-col gap-2">
-                            <label className="text-xs text-indigo-300 font-black uppercase ml-1">Wizard Name</label>
-                            <input placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-indigo-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
+                            <label className="text-xs text-cyan-300 font-black uppercase ml-1">Wizard Name</label>
+                            <input placeholder="e.g. Gandalf" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold focus:border-cyan-500 transition-colors" onChange={(e) => setPlayerName(e.target.value)} />
                         </div>
                         <div className="flex gap-2">
-                            <button onClick={startBotMode} className="flex-1 group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-indigo-400 transition-all">
+                            <button onClick={startBotMode} className="flex-1 group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-cyan-400 transition-all">
                                 <Cpu size={18} className="text-emerald-400 group-hover:scale-110 transition-transform" />
                                 <span className="font-bold text-slate-200 uppercase tracking-wider text-xs md:text-sm">Practice</span>
                             </button>
@@ -543,12 +543,12 @@ function WizBattles() {
 
                         {!showJoinInput ? (
                             <div className="grid grid-cols-2 gap-3">
-                                <button onClick={createRoom} className="bg-gradient-to-r from-indigo-600 to-purple-600 py-4 rounded-xl font-black text-sm text-white uppercase tracking-wider hover:scale-[1.02] shadow-lg flex flex-col items-center gap-1">
+                                <button onClick={createRoom} className="bg-gradient-to-r from-cyan-600 to-blue-600 py-4 rounded-xl font-black text-sm text-white uppercase tracking-wider hover:scale-[1.02] shadow-lg flex flex-col items-center gap-1">
                                     <Zap size={20} className="text-yellow-300" />
                                     Create Room
                                 </button>
-                                <button onClick={() => setShowJoinInput(true)} className="bg-slate-800 border-2 border-slate-700 hover:border-indigo-500 py-4 rounded-xl font-black text-sm text-slate-300 hover:text-white uppercase tracking-wider hover:scale-[1.02] transition-all flex flex-col items-center gap-1">
-                                    <Hash size={20} className="text-indigo-400" />
+                                <button onClick={() => setShowJoinInput(true)} className="bg-slate-800 border-2 border-slate-700 hover:border-cyan-500 py-4 rounded-xl font-black text-sm text-slate-300 hover:text-white uppercase tracking-wider hover:scale-[1.02] transition-all flex flex-col items-center gap-1">
+                                    <Hash size={20} className="text-cyan-400" />
                                     Join Room
                                 </button>
                             </div>
@@ -556,12 +556,12 @@ function WizBattles() {
                             <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
                                 <div className="flex flex-col gap-2">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-xs text-indigo-300 font-black uppercase ml-1">Enter Room Code</label>
+                                        <label className="text-xs text-cyan-300 font-black uppercase ml-1">Enter Room Code</label>
                                         <button onClick={() => setShowJoinInput(false)} className="text-[10px] text-slate-500 hover:text-white uppercase font-bold underline">Cancel</button>
                                     </div>
-                                    <input autoFocus placeholder="e.g. X8J9L2" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold text-center tracking-widest focus:border-indigo-500 transition-colors uppercase text-lg" onChange={(e) => setRoom(e.target.value.toUpperCase())} />
+                                    <input autoFocus placeholder="e.g. X8J9L2" className="bg-[#0a0f20] border-2 border-slate-700 p-3 rounded-xl text-white outline-none font-bold text-center tracking-widest focus:border-cyan-500 transition-colors uppercase text-lg" onChange={(e) => setRoom(e.target.value.toUpperCase())} />
                                 </div>
-                                <button onClick={() => joinRoom()} className="bg-gradient-to-r from-indigo-600 to-purple-600 py-3 rounded-xl font-black text-lg text-white uppercase tracking-widest hover:scale-[1.02] shadow-lg">
+                                <button onClick={() => joinRoom()} className="bg-gradient-to-r from-cyan-600 to-blue-600 py-3 rounded-xl font-black text-lg text-white uppercase tracking-widest hover:scale-[1.02] shadow-lg">
                                     Join Battle
                                 </button>
                             </div>
@@ -583,9 +583,9 @@ function WizBattles() {
 
             {/* BACKGROUND */}
             <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-[#050a18] to-black"></div>
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#050a18] to-black"></div>
                 <div className="absolute inset-0 opacity-30 pointer-events-none">
-                    {[...Array(20)].map((_, i) => (<div key={i} className="particle" style={{ left: `${Math.random() * 100}%`, width: `${Math.random() * 3}px`, height: `${Math.random() * 3}px`, animationDuration: `${Math.random() * 10 + 5}s`, animationDelay: `-${Math.random() * 5}s`, background: i % 2 === 0 ? 'cyan' : 'violet' }}></div>))}
+                    {[...Array(20)].map((_, i) => (<div key={i} className="particle" style={{ left: `${Math.random() * 100}%`, width: `${Math.random() * 3}px`, height: `${Math.random() * 3}px`, animationDuration: `${Math.random() * 10 + 5}s`, animationDelay: `-${Math.random() * 5}s`, background: i % 2 === 0 ? 'cyan' : 'gold' }}></div>))}
                 </div>
             </div>
 
@@ -598,7 +598,7 @@ function WizBattles() {
                     <div className="bg-yellow-500/10 border border-yellow-500/30 p-1.5 rounded-lg shrink-0">
                         <Sparkles size={16} className="text-yellow-400" />
                     </div>
-                    <span className="font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-orange-400 hidden md:block">WIZ BATTLES</span>
+                    <span className="font-black italic text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 to-blue-400 hidden md:block">WIZ BATTLES</span>
                     <button onClick={() => setShowRules(true)} className="md:hidden bg-slate-800 p-1.5 rounded-md border border-slate-700 text-slate-300 shrink-0">
                         <Book size={14} />
                     </button>
@@ -623,7 +623,7 @@ function WizBattles() {
                     {!isBotMode && (
                         <div className="flex flex-col items-end mr-1 flex">
                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Room</span>
-                            <span className="text-sm font-black text-indigo-400 flex items-center gap-1 select-all cursor-pointer" onClick={() => { navigator.clipboard.writeText(room); alert("Room ID Copied!") }}>
+                            <span className="text-sm font-black text-cyan-400 flex items-center gap-1 select-all cursor-pointer" onClick={() => { navigator.clipboard.writeText(room); alert("Room ID Copied!") }}>
                                 <Hash size={12} className="opacity-50" /> {room}
                             </span>
                         </div>
@@ -645,8 +645,8 @@ function WizBattles() {
 
                 {/* NARRATIVE BAR (Center) */}
                 <div className="w-full flex justify-center my-2 relative z-20 h-12 md:h-16 items-center">
-                    <div className={`px-6 py-2 md:py-3 backdrop-blur-md border rounded-full shadow-2xl text-center min-w-[280px] md:min-w-[300px] max-w-[95%] transition-colors duration-500 ${gameState === 'gameover' ? 'bg-gradient-to-r from-yellow-900/90 to-amber-950/90 border-yellow-500/50' : 'bg-gradient-to-r from-slate-900/90 to-indigo-950/90 border-indigo-500/30'}`}>
-                        <span className={`text-xs md:text-lg font-black italic text-transparent bg-clip-text ${gameState === 'gameover' ? 'bg-gradient-to-r from-yellow-100 via-yellow-300 to-yellow-100 animate-pulse' : 'bg-gradient-to-r from-yellow-100 via-white to-yellow-100'}`}>
+                    <div className={`px-6 py-2 md:py-3 backdrop-blur-md border rounded-full shadow-2xl text-center min-w-[280px] md:min-w-[300px] max-w-[95%] transition-colors duration-500 ${gameState === 'gameover' ? 'bg-gradient-to-r from-yellow-900/90 to-amber-950/90 border-yellow-500/50' : 'bg-gradient-to-r from-slate-900/90 to-cyan-950/90 border-cyan-500/30'}`}>
+                        <span className={`text-xs md:text-lg font-black italic text-transparent bg-clip-text ${gameState === 'gameover' ? 'bg-gradient-to-r from-yellow-100 via-yellow-300 to-yellow-100 animate-pulse' : 'bg-gradient-to-r from-cyan-100 via-white to-cyan-100'}`}>
                             {message}
                         </span>
                     </div>
@@ -657,7 +657,7 @@ function WizBattles() {
             </div>
 
             {/* --- CONTROLS --- */}
-            <div className="w-full shrink-0 bg-[#0a0f20]/90 backdrop-blur-lg p-3 md:p-4 pb-6 rounded-t-[2rem] border-t border-indigo-500/20 relative z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transition-all duration-300">
+            <div className="w-full shrink-0 bg-[#0a0f20]/90 backdrop-blur-lg p-3 md:p-4 pb-6 rounded-t-[2rem] border-t border-cyan-500/20 relative z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transition-all duration-300">
                 {gameState === 'gameover' ? (
                     <div className="flex justify-center items-center py-4">
                         <button onClick={restartGame} className="flex items-center gap-3 px-10 py-4 bg-white text-black rounded-full font-black text-xl hover:scale-105 hover:bg-yellow-300 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)]">
@@ -674,10 +674,10 @@ function WizBattles() {
 
             {/* --- CHAT BOX --- */}
             <div className={`fixed right-4 bottom-24 z-40 transition-all duration-300 ${showChat ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)]'}`}>
-                <div className="bg-slate-900/95 backdrop-blur-xl border-2 border-indigo-500/30 rounded-2xl shadow-2xl w-72 md:w-80 h-80 md:h-96 flex flex-col">
-                    <div className="flex items-center justify-between p-3 border-b border-indigo-500/20">
+                <div className="bg-slate-900/95 backdrop-blur-xl border-2 border-cyan-500/30 rounded-2xl shadow-2xl w-72 md:w-80 h-80 md:h-96 flex flex-col">
+                    <div className="flex items-center justify-between p-3 border-b border-cyan-500/20">
                         <div className="flex items-center gap-2">
-                            <MessageCircle size={18} className="text-indigo-400" />
+                            <MessageCircle size={18} className="text-cyan-400" />
                             <span className="font-bold text-sm text-white">Chat</span>
                         </div>
                         <button onClick={() => setShowChat(false)} className="text-slate-400 hover:text-white transition-colors">
@@ -689,7 +689,7 @@ function WizBattles() {
                         {chatMessages.map((msg) => (
                             <div key={msg.id} className={`flex flex-col ${msg.isSelf ? 'items-end' : 'items-start'}`}>
                                 <span className="text-[9px] text-slate-500 mb-0.5">{msg.playerName}</span>
-                                <div className={`px-2.5 py-1.5 rounded-lg max-w-[85%] break-words ${msg.isSelf ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200'}`}>
+                                <div className={`px-2.5 py-1.5 rounded-lg max-w-[85%] break-words ${msg.isSelf ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-200'}`}>
                                     <p className="text-xs md:text-sm">{msg.message}</p>
                                 </div>
                             </div>
@@ -697,7 +697,7 @@ function WizBattles() {
                         <div ref={chatEndRef} />
                     </div>
 
-                    <div className="p-3 border-t border-indigo-500/20">
+                    <div className="p-3 border-t border-cyan-500/20">
                         <div className="flex gap-2">
                             <input
                                 type="text"
@@ -705,9 +705,9 @@ function WizBattles() {
                                 onChange={(e) => setChatInput(e.target.value.slice(0, 200))}
                                 onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
                                 placeholder="Type message..."
-                                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs md:text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs md:text-sm text-white outline-none focus:border-cyan-500 transition-colors"
                             />
-                            <button onClick={sendChatMessage} disabled={!chatInput.trim()} className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:cursor-not-allowed p-2 rounded-lg transition-colors">
+                            <button onClick={sendChatMessage} disabled={!chatInput.trim()} className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:cursor-not-allowed p-2 rounded-lg transition-colors">
                                 <Send size={16} className="text-white" />
                             </button>
                         </div>
@@ -715,7 +715,7 @@ function WizBattles() {
                 </div>
             </div>
 
-            <button onClick={() => setShowChat(!showChat)} className="fixed right-4 bottom-4 z-40 bg-indigo-600 hover:bg-indigo-500 p-3 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90">
+            <button onClick={() => setShowChat(!showChat)} className="fixed right-4 bottom-4 z-40 bg-cyan-600 hover:bg-cyan-500 p-3 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90">
                 <MessageCircle size={24} className="text-white" />
                 {chatMessages.length > 0 && !showChat && (
                     <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">!</div>
@@ -724,9 +724,9 @@ function WizBattles() {
 
             {/* --- EMOJI PICKER --- */}
             {showEmojiPicker && (
-                <div className="fixed left-1/2 bottom-32 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-xl border-2 border-purple-500/30 rounded-2xl shadow-2xl p-4 w-[280px]">
+                <div className="fixed left-1/2 bottom-32 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-xl border-2 border-amber-500/30 rounded-2xl shadow-2xl p-4 w-[280px]">
                     <div className="flex items-center gap-3 mb-3">
-                        <Smile size={18} className="text-purple-400" />
+                        <Smile size={18} className="text-amber-400" />
                         <span className="font-bold text-sm text-white">Reactions</span>
                         <button onClick={() => setShowEmojiPicker(false)} className="ml-auto text-slate-400 hover:text-white"><X size={16} /></button>
                     </div>
@@ -740,7 +740,7 @@ function WizBattles() {
                 </div>
             )}
 
-            <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="fixed left-4 bottom-4 z-40 bg-purple-600 hover:bg-purple-500 p-3 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90">
+            <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="fixed left-4 bottom-4 z-40 bg-amber-500 hover:bg-amber-400 p-3 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90">
                 <Smile size={24} className="text-white" />
             </button>
 
@@ -861,7 +861,7 @@ const RuleBookModal = ({ show, onClose }) => {
                                 </div>
                             </div>
 
-                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-purple-500">
+                            <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-emerald-500">
                                 <div className="font-bold text-white w-full md:w-1/3">REBOUND</div>
                                 <div className="text-slate-300 flex-1">
                                     Reflects any attack with Power 5 or less back at the user.<br />

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, Zap, Flame, Disc, Globe, Sun, RefreshCw, Skull, Trophy, Sparkles, Swords, User, Cpu, LogOut, Hash, MessageCircle, Send, Smile, ThumbsUp, Heart, Angry, Laugh, X, Book, Info, AlertTriangle } from 'lucide-react';
 import io from 'socket.io-client';
+import soundSystem from './utils/SoundEffects';
 
 // --- CONFIGURATION ---
 const BACKEND_URL = import.meta.env.PROD
     ? "https://wizbattle.onrender.com/"
-    : "http://localhost:3001";
+    : `http://${window.location.hostname}:3001`;
 
 const socket = io.connect(BACKEND_URL, { autoConnect: false });
 
@@ -158,6 +159,7 @@ function WizBattles() {
         });
 
         socket.on("game_start", () => {
+            soundSystem.playGameStart();
             setMessage("BATTLE START! Select a move.");
             setGameState('playing');
         });
@@ -183,6 +185,7 @@ function WizBattles() {
 
         socket.on("receive_chat", ({ message, playerName, timestamp, senderId }) => {
             const isSelf = senderId === socket.id;
+            if (!isSelf) soundSystem.playChat();
             setChatMessages(prev => [...prev, { message, playerName, timestamp, id: Math.random(), isSelf }]);
         });
 
@@ -242,6 +245,8 @@ function WizBattles() {
             setIsBotMode(false);
             setJoined(true);
             setRoom(codeToJoin);
+            soundSystem.init();
+            soundSystem.playClick();
             socket.emit("join_room", codeToJoin);
             if (myRole === 'p1') setP1Name(playerName);
             else if (myRole === 'p2') setP2Name(playerName);
@@ -268,6 +273,8 @@ function WizBattles() {
 
     const startBotMode = () => {
         if (playerName !== "") {
+            soundSystem.init();
+            soundSystem.playGameStart();
             setIsBotMode(true);
             setJoined(true);
             setMyRole('p1');
@@ -310,6 +317,7 @@ function WizBattles() {
 
     const sendMove = (moveKey) => {
         if (gameState !== 'playing') return;
+        soundSystem.playClick();
         const move = MOVES[moveKey];
         const playerMoveData = { ...move, playerName: playerName };
 
@@ -387,8 +395,19 @@ function WizBattles() {
         setMessage("Resolving...");
 
         if (move1.type === 'attack' || move2.type === 'attack') {
-            setTimeout(() => { setShake(true); }, 800);
+            setTimeout(() => {
+                setShake(true);
+                // Determine dominant sound
+                if (move1.type === 'attack' && move2.type === 'attack') soundSystem.playClash();
+                else if (move1.id === 'shield' || move2.id === 'shield') soundSystem.playShield();
+                else if (move1.id === 'rebound' || move2.id === 'rebound') soundSystem.playRebound();
+                else if (move1.power > 4 || move2.power > 4) soundSystem.playUltimate();
+                else soundSystem.playFireball();
+            }, 800);
             setTimeout(() => { setShake(false); }, 1300);
+        } else {
+            // Charging / Buff sounds for non-attack rounds
+            soundSystem.playCharge();
         }
 
         setTimeout(() => {
@@ -459,10 +478,12 @@ function WizBattles() {
                 setWinner('p2');
                 setWins(w => ({ ...w, p2: w.p2 + 1 }));
                 setMessage(`${name2} WINS!`);
+                if ((myRole === 'p1')) soundSystem.playLose(); else soundSystem.playWin();
             } else {
                 setWinner('p1');
                 setWins(w => ({ ...w, p1: w.p1 + 1 }));
                 setMessage(`${name1} WINS!`);
+                if ((myRole === 'p1')) soundSystem.playWin(); else soundSystem.playLose();
             }
             setTimeout(() => { setGameState('gameover'); }, 2500);
         } else {
@@ -496,6 +517,7 @@ function WizBattles() {
                 key={move.id}
                 disabled={!canAfford || gameState !== 'playing'}
                 onClick={() => sendMove(moveKey)}
+                onMouseEnter={() => soundSystem.playHover()}
                 className={`group relative flex flex-col items-center justify-between p-2 rounded-xl border-2 transition-all duration-300 overflow-hidden ${!canAfford ? 'opacity-40 grayscale scale-95 border-slate-700 bg-slate-900/50' : `hover:-translate-y-1 hover:shadow-xl cursor-pointer bg-gradient-to-br ${move.bg} ${move.border} ${move.shadow}`}`}
             >
                 <div className={`relative z-10 p-2 rounded-full bg-black/40 mb-1 ${move.color} border border-white/10 shadow-inner`}>

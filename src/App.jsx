@@ -17,10 +17,10 @@ const MOVES = {
     FIREBALL: { id: 'fireball', name: 'Fireball', cost: 1, power: 1, type: 'attack', icon: Flame, color: 'text-orange-300', bg: 'from-orange-600/80 to-red-800/60', border: 'border-orange-400/80', shadow: 'shadow-orange-500/50', desc: 'Fireball!!' },
     BEAM: { id: 'beam', name: 'Beam', cost: 2, power: 2, type: 'attack', icon: Sun, color: 'text-cyan-300', bg: 'from-cyan-600/80 to-blue-800/60', border: 'border-cyan-400/80', shadow: 'shadow-cyan-500/50', desc: 'Light beam' },
     REBOUND: { id: 'rebound', name: 'Rebound', cost: 2, power: 0, type: 'counter', icon: RefreshCw, color: 'text-emerald-300', bg: 'from-emerald-600/80 to-teal-800/60', border: 'border-emerald-400/80', shadow: 'shadow-emerald-500/50', desc: 'Reflects attacks.' },
-    DISC: { id: 'disc', name: 'Destructo', cost: 3, power: 3, type: 'attack', icon: Disc, color: 'text-pink-300', bg: 'from-pink-600/80 to-rose-800/60', border: 'border-pink-400/80', shadow: 'shadow-pink-500/50', desc: 'Pierces Shield.' },
-    KAYOKEN: { id: 'kayoken', name: 'Kayoken', cost: 0, req: 4, power: 0, type: 'special', icon: Sparkles, color: 'text-red-300', bg: 'from-red-700/90 to-orange-800/70', border: 'border-red-500/80', shadow: 'shadow-red-600/60', desc: 'Dodge + 3 Energy.' },
-    SPIRIT: { id: 'spirit', name: 'Spirit Bomb', cost: 5, power: 5, type: 'attack', icon: Globe, color: 'text-sky-300', bg: 'from-sky-600/80 to-indigo-900/70', border: 'border-sky-400/80', shadow: 'shadow-sky-500/60', desc: 'Massive Damage.' },
-    DRAGON: { id: 'dragon', name: 'Dragon Fist', cost: 8, power: 8, type: 'attack', icon: Trophy, color: 'text-amber-200', bg: 'from-amber-500/90 to-yellow-800/80', border: 'border-amber-300/90', shadow: 'shadow-amber-400/70', desc: 'Unleash the dragon.' }
+    DISC: { id: 'disc', name: 'Vortex', cost: 3, power: 3, type: 'attack', icon: Disc, color: 'text-pink-300', bg: 'from-pink-600/80 to-rose-800/60', border: 'border-pink-400/80', shadow: 'shadow-pink-500/50', desc: 'Pierces Shield.' },
+    KAYOKEN: { id: 'kayoken', name: 'Phantom Shift', cost: 0, req: 4, power: 0, type: 'special', icon: Sparkles, color: 'text-red-300', bg: 'from-red-700/90 to-orange-800/70', border: 'border-red-500/80', shadow: 'shadow-red-600/60', desc: 'Dodge + 3 Energy.' },
+    SPIRIT: { id: 'spirit', name: 'Soul Flare', cost: 5, power: 5, type: 'attack', icon: Globe, color: 'text-sky-300', bg: 'from-sky-600/80 to-indigo-900/70', border: 'border-sky-400/80', shadow: 'shadow-sky-500/60', desc: 'Massive Damage.' },
+    DRAGON: { id: 'dragon', name: 'Oblivion', cost: 8, power: 8, type: 'attack', icon: Trophy, color: 'text-amber-200', bg: 'from-amber-500/90 to-yellow-800/80', border: 'border-amber-300/90', shadow: 'shadow-amber-400/70', desc: 'Unleash the dragon.' }
 };
 
 const INITIAL_ENERGY = 0;
@@ -550,7 +550,7 @@ function WizBattles() {
                         <div className="flex gap-2">
                             <button onClick={startBotMode} className="flex-1 group relative flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl border border-slate-600 hover:border-cyan-400 transition-all">
                                 <Cpu size={18} className="text-emerald-400 group-hover:scale-110 transition-transform" />
-                                <span className="font-bold text-slate-200 uppercase tracking-wider text-xs md:text-sm">Practice</span>
+                                <span className="font-bold text-slate-200 uppercase tracking-wider text-xs md:text-sm">Play with Bot</span>
                             </button>
                             <button onClick={() => setShowRules(true)} className="group flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 rounded-xl border border-slate-600 hover:border-yellow-400 transition-all">
                                 <Book size={18} className="text-yellow-400 group-hover:scale-110 transition-transform" />

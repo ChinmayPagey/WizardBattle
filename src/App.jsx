@@ -106,6 +106,12 @@ const styles = `
   }
 `;
 
+const GameFooter = ({ absolute = false }) => (
+    <footer className={`${absolute ? 'absolute bottom-4 left-0' : 'relative py-2 pb-4'} w-full text-center text-slate-500 text-[10px] md:text-xs z-[100] opacity-60 hover:opacity-100 transition-opacity`}>
+        made by <a href="https://www.linkedin.com/in/chinmay-pagey/" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">Chinmay</a> and <a href="https://chandannn.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Chandan</a>
+    </footer>
+);
+
 function WizBattles() {
     const [room, setRoom] = useState("");
     const [playerName, setPlayerName] = useState("");
@@ -559,7 +565,7 @@ function WizBattles() {
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="h-px bg-slate-700 flex-1"></div>
-                            <span className="text-xs text-slate-500 font-bold uppercase">OR ONLINE</span>
+                            <span className="text-xs text-slate-500 font-bold uppercase">PLAY WITH FRIENDS</span>
                             <div className="h-px bg-slate-700 flex-1"></div>
                         </div>
 
@@ -590,6 +596,7 @@ function WizBattles() {
                         )}
                     </div>
                 </div>
+                <GameFooter absolute />
             </div>
         );
     }
@@ -788,6 +795,7 @@ function WizBattles() {
                     );
                 })}
             </div>
+            <GameFooter />
         </div>
     );
 }
@@ -879,7 +887,7 @@ const RuleBookModal = ({ show, onClose }) => {
                                 <div className="font-bold text-white w-full md:w-1/3">SHIELDING</div>
                                 <div className="text-slate-300 flex-1">
                                     Blocks any attack with Power 2 or less (Fireball, Beam). <br />
-                                    <span className="text-pink-400 font-bold">DESTRUCTO DISC</span>  (Power 3) or higher breaks shields!
+                                    <span className="text-pink-400 font-bold">VORTEX</span>  (Power 3) or higher breaks shields!
                                 </div>
                             </div>
 
@@ -887,12 +895,12 @@ const RuleBookModal = ({ show, onClose }) => {
                                 <div className="font-bold text-white w-full md:w-1/3">REBOUND</div>
                                 <div className="text-slate-300 flex-1">
                                     Reflects any attack with Power 5 or less back at the user.<br />
-                                    <span className="text-amber-400 font-bold">DRAGON FIST</span> (Power 8) crushes Rebound.
+                                    <span className="text-amber-400 font-bold">OBLIVION</span> (Power 8) crushes Rebound.
                                 </div>
                             </div>
 
                             <div className="bg-slate-800 p-3 rounded-xl flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center justify-between border-l-4 border-red-500">
-                                <div className="font-bold text-white w-full md:w-1/3">KAYOKEN</div>
+                                <div className="font-bold text-white w-full md:w-1/3">PHANTOM SHIFT</div>
                                 <div className="text-slate-300 flex-1">
                                     The ultimate dodge. Avoids <span className="text-white font-bold underline">ANY</span> incoming attack and instantly charges +3 Energy.
                                 </div>

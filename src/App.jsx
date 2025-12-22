@@ -111,7 +111,7 @@ const GameFooter = ({ absolute = false }) => (
         made by <a href="https://www.linkedin.com/in/chinmay-pagey/" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">Chinmay</a> and <a href="https://chandannn.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Chandan</a>
     </footer>
 );
-
+// chandan made changes
 function WizBattles() {
     const [room, setRoom] = useState("");
     const [playerName, setPlayerName] = useState("");

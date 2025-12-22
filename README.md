@@ -4,7 +4,7 @@ A real-time multiplayer turn-based strategy game where wizards duel to the death
 
 ## New Features
 
-### 💬 Real-time Chat
+### Real-time Chat
 - Chat with your opponent during battles
 - 200 character limit per message
 - Bot responds with contextual messages in single-player mode

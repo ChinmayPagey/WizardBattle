@@ -2,7 +2,7 @@
 
 A real-time multiplayer turn-based strategy game where wizards duel to the death! Built with React, Socket.io, and Tailwind CSS.
 
-## ✨ New Features
+## New Features
 
 ### 💬 Real-time Chat
 - Chat with your opponent during battles
@@ -10,13 +10,13 @@ A real-time multiplayer turn-based strategy game where wizards duel to the death
 - Bot responds with contextual messages in single-player mode
 - Auto-scrolling message history
 
-### 😊 Emoji Reactions
+### Emoji Reactions
 - Clash Royale-style emoji reactions
 - 6 quick reactions: Nice!, Love it, LOL, Grr!, GG, Wow!
 - Floating emoji animations
 - Bot reacts back randomly
 
-### 🤖 Enhanced Bot AI
+### Enhanced Bot AI
 - **Strategic Decision-Making**: 11-tier priority system
 - **Pattern Recognition**: Learns from your last 10 moves
 - **Adaptive Personality**: Adjusts aggression based on game state
@@ -104,13 +104,13 @@ Open the game in two different browser tabs (or use two different devices on the
 
 ## Game Modes
 
-### 🤖 Practice vs Bot (Single-player)
+### Practice vs Bot (Single-player)
 - Train against an intelligent AI opponent
 - Bot uses advanced strategy and adapts to your playstyle
 - Perfect for learning the game mechanics
 - Chat and emoji features work with bot responses
 
-### 🌐 Online Multiplayer
+### Online Multiplayer
 - Battle against real players in real-time
 - Enter a room code to match with friends
 - Full chat and emoji support for social interaction

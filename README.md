@@ -12,7 +12,7 @@ A real-time multiplayer turn-based strategy game where wizards duel to the death
 
 ### Emoji Reactions
 - Clash Royale-style emoji reactions
-- 6 quick reactions: Nice!, Love it, LOL, Grr!, GG, Wow!
+- 6 quick reactions: Nice!, Love it, LOL, Grr!, GG and Wow!
 - Floating emoji animations
 - Bot reacts back randomly
 
@@ -70,7 +70,7 @@ Predict your opponent, manage your energy, and land a killing blow to win the ro
 
 *   **Frontend**: React, Vite, Tailwind CSS, Lucide Icons
 *   **Backend**: Node.js, Express, Socket.io
-*   **Deployment**: Ready for Vercel (Frontend) and Render (Backend)
+*   **Deployment**: Vercel (Frontend) and Render (Backend)
 
 ---
 
@@ -88,14 +88,14 @@ Open a terminal and run:
 ```bash
 npm run server
 ```
-*Server runs on port 3001*
+*Server runs on a port
 
 ### 3. Start the Frontend
 Open a **new** terminal and run:
 ```bash
 npm run dev
 ```
-*Open the link provided (usually `http://localhost:5173`)*
+*Open the link provided
 
 ### 4. Play!
 Open the game in two different browser tabs (or use two different devices on the same network if configured) to simulate a multiplayer battle. Join the same Room Name to connect.
